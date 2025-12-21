@@ -1,0 +1,18 @@
+test -r ~/.bashrc && . ~/.bashrc
+
+shopt -s autocd
+shopt -s dotglob
+
+HISTSIZE=100000
+HISTFILESIZE=10000000
+
+export EDITOR=nvim
+
+alias tn="tmux new -s main"
+alias ta="tmux a -t main"
+alias rl="source ~/.bash_profile"
+alias gs="git status"
+alias gd="git diff"
+
+
+eval "$(~/.local/bin/mise activate bash)"
