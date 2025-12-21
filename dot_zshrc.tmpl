@@ -1,0 +1,60 @@
+
+setopt AUTO_CD
+export HISTSIZE=100000
+export SAVEHIST=100000
+
+# homebrew
+{{ if eq .chezmoi.os "darwin" }}
+export HOMEBREW_NO_ANALYTICS=1
+{{ end }}
+
+if type brew &>/dev/null
+then
+  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+
+  autoload -Uz compinit
+  compinit
+fi
+
+# mise
+eval "$(mise activate zsh)"
+
+# Prompt
+autoload -Uz colors && colors
+PROMPT="%F{green}%n%f %F{cyan}%f%F{blue}%~%f"$'\n'"%# "
+
+# dotnet
+export PATH=$PATH:/usr/local/share/dotnet/
+export PATH=$PATH:~/.dotnet/tools/
+
+alias v=nvim
+alias vim=nvim
+alias cc="cage claude"
+alias ccd="cage claude --dangerously-skip-permissions"
+
+# use Neovim instead of Vim in devcontainer.vim
+export DEVCONTAINER_VIM_TYPE=nvim
+alias vimcontainer=devcontainer.vim
+
+
+function fzf_ghq() {
+  local project_name=$(ghq list | sort | fzf)
+  if [[ -n "$project_name" ]]; then
+    local project_path=$(ghq root)/$project_name
+    cd "$project_path"
+  fi
+}
+alias g=fzf_ghq
+
+autoload history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey "^p" history-beginning-search-backward-end
+bindkey "^n" history-beginning-search-forward-end
+
+
+# $PATH を1行ずつ表示
+pathls() {
+  emulate -L zsh
+  print -rl -- $path
+}
