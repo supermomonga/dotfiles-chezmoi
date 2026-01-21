@@ -1,3 +1,15 @@
 install.sh
 LICENSE
 README.md
+
+# ignore on Mac/Linux
+{{ if ne .chezmoi.os "windows" }}
+Documents/**
+AppData/Local/1Password/config/ssh/agent.toml.tmpl
+{{ end }}
+
+# ignore on Windows
+{{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
+.config/1Password/ssh/agent.toml
+{{ end }}
+
