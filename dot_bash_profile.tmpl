@@ -16,3 +16,12 @@ alias gd="git diff"
 
 
 eval "$(~/.local/bin/mise activate bash)"
+
+
+{{ if eq .chezmoi.os "linux" }}
+{{   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+# use ssh command on host machine(Windows)
+alias ssh='ssh.exe'
+alias ssh-add='ssh-add.exe'
+{{   end }}
+{{ end }}
