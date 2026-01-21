@@ -24,3 +24,8 @@
         helper =
         helper = !/usr/bin/gh auth git-credential
 {{ end }}
+
+{{ if eq .chezmoi.os "windows" }}
+[credential "helperselector"]
+        selected = manager
+{{ end }}

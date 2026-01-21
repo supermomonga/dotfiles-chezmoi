@@ -9,7 +9,7 @@ AppData/**
 {{ end }}
 
 # ignore on Windows
-{{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
-.config/1Password/ssh/agent.toml
+{{ if and (ne .chezmoi.os "darwin") (ne .chezmoi.os "linux") }}
+.config/1Password/
 {{ end }}
 
