@@ -5,7 +5,7 @@ README.md
 # ignore on Mac/Linux
 {{ if ne .chezmoi.os "windows" }}
 Documents/**
-AppData/Local/1Password/config/ssh/agent.toml.tmpl
+AppData/Local/1Password/config/ssh/agent.toml
 {{ end }}
 
 # ignore on Windows
