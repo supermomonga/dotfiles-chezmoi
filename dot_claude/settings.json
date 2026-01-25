@@ -46,5 +46,6 @@
   "enabledPlugins": {
     "lua-lsp@claude-plugins-official": true
   },
-  "language": "Japanese"
+  "language": "Japanese",
+  "model": "opus"
 }
