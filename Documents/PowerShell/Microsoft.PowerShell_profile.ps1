@@ -6,3 +6,10 @@ $env:XDG_STATE_HOME = "$HOME\.local\state"
 
 # mise
 (&mise activate pwsh) | Out-String | Invoke-Expression
+
+# Claude Code
+$resolved = Resolve-Path "~/.local/bin" -ErrorAction SilentlyContinue
+if ($resolved) {
+    $Env:Path = "$($resolved.Path);$Env:Path"
+}
+
