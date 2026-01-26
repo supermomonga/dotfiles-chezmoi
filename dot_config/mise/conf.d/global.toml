@@ -1,0 +1,14 @@
+# Machine-global config
+
+[tools]
+# Runtime
+bun = "latest"
+deno = "latest"
+go = "latest"
+
+# Tools
+chezmoi = "latest"
+neovim = "latest"
+
+# Packages
+"go:github.com/x-motemen/ghq" = "latest"
