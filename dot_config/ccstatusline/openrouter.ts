@@ -1,7 +1,6 @@
-#!/usr/bin/env npx tsx
-
+#!/usr/bin/env bun
 /**
- * OpenRouter cost tracking statusline for Claude Code
+ * OpenRouter cost tracking statusline for Claude Code (Bun-compatible)
  *
  * Displays: Provider: model - $cost - cache discount: $saved
  *
@@ -9,14 +8,16 @@
  * {
  *   "statusLine": {
  *     "type": "command",
- *     "command": "/path/to/statusline.sh"
+ *     "command": "/path/to/openrouter.ts"
  *   }
  * }
  *
  * Requires: ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY set to your OpenRouter API key
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 interface StatuslineInput {
   session_id: string;
@@ -40,24 +41,18 @@ interface State {
 
 async function fetchGeneration(id: string, apiKey: string): Promise<GenerationData | null> {
   try {
-    const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${id}`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
+    const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
     });
 
-    if (!res.ok) {
-      return null;
-    }
+    if (!res.ok) return null;
 
-    const json = await res.json();
+    const json = (await res.json()) as any;
     const data = json?.data;
 
-    if (!data || typeof data.total_cost !== 'number') {
-      return null;
-    }
+    if (!data || typeof data.total_cost !== "number") return null;
 
-    return data;
+    return data as GenerationData;
   } catch {
     return null;
   }
@@ -71,23 +66,16 @@ interface CreditData {
 async function fetchCredit(apiKey: string): Promise<CreditData | null> {
   try {
     const res = await fetch(`https://openrouter.ai/api/v1/credits`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { Authorization: `Bearer ${apiKey}` },
     });
 
-    if (!res.ok) {
-      return null;
-    }
+    if (!res.ok) return null;
 
-    const json = await res.json();
+    const json = (await res.json()) as any;
     const data = json?.data;
+    if (!data) return null;
 
-    if (!data) {
-      return null;
-    }
-
-    return data;
+    return data as CreditData;
   } catch {
     return null;
   }
@@ -95,21 +83,20 @@ async function fetchCredit(apiKey: string): Promise<CreditData | null> {
 
 function extractGenerationIds(transcriptPath: string): string[] {
   try {
-    const content = readFileSync(transcriptPath, 'utf-8');
+    const content = readFileSync(transcriptPath, "utf-8");
     const ids: string[] = [];
 
-    for (const line of content.split('\n')) {
-      if (!line.trim()) {
-        continue;
-      }
+    for (const line of content.split("\n")) {
+      if (!line.trim()) continue;
+
       try {
         const entry = JSON.parse(line);
         const messageId = entry?.message?.id;
-        if (typeof messageId === 'string' && messageId.startsWith('gen-')) {
+        if (typeof messageId === "string" && messageId.startsWith("gen-")) {
           ids.push(messageId);
         }
       } catch {
-        // Skip malformed lines
+        // skip malformed lines
       }
     }
 
@@ -124,34 +111,27 @@ function loadState(statePath: string): State {
     seen_ids: [],
     total_cost: 0,
     total_cache_discount: 0,
-    last_provider: '',
-    last_model: '',
+    last_provider: "",
+    last_model: "",
   };
 
-  if (!existsSync(statePath)) {
-    return defaultState;
-  }
+  if (!existsSync(statePath)) return defaultState;
 
   try {
-    const content = readFileSync(statePath, 'utf-8');
-    if (!content.trim()) {
-      return defaultState;
-    }
+    const content = readFileSync(statePath, "utf-8");
+    if (!content.trim()) return defaultState;
 
     const parsed = JSON.parse(content);
 
-    // Validate state shape
-    if (!Array.isArray(parsed.seen_ids)) {
-      return defaultState;
-    }
+    if (!Array.isArray(parsed.seen_ids)) return defaultState;
 
     return {
       seen_ids: parsed.seen_ids,
-      total_cost: typeof parsed.total_cost === 'number' ? parsed.total_cost : 0,
+      total_cost: typeof parsed.total_cost === "number" ? parsed.total_cost : 0,
       total_cache_discount:
-        typeof parsed.total_cache_discount === 'number' ? parsed.total_cache_discount : 0,
-      last_provider: typeof parsed.last_provider === 'string' ? parsed.last_provider : '',
-      last_model: typeof parsed.last_model === 'string' ? parsed.last_model : '',
+        typeof parsed.total_cache_discount === "number" ? parsed.total_cache_discount : 0,
+      last_provider: typeof parsed.last_provider === "string" ? parsed.last_provider : "",
+      last_model: typeof parsed.last_model === "string" ? parsed.last_model : "",
     };
   } catch {
     return defaultState;
@@ -163,41 +143,46 @@ function saveState(statePath: string, state: State): void {
 }
 
 function shortModelName(model: string): string {
-  return model.replace(/^[^/]+\//, '').replace(/-\d{8}$/, '');
+  return model.replace(/^[^/]+\//, "").replace(/-\d{8}$/, "");
+}
+
+async function readStdinText(): Promise<string> {
+  // Bun: Response can wrap Node streams
+  return await new Response(process.stdin as any).text();
 }
 
 async function main(): Promise<void> {
-  const apiKey = process.env.ANTHROPIC_AUTH_TOKEN ?? process.env.ANTHROPIC_API_KEY ?? '';
+  const apiKey = process.env.ANTHROPIC_AUTH_TOKEN ?? process.env.ANTHROPIC_API_KEY ?? "";
 
   if (!apiKey) {
-    process.stdout.write(
-      'Set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY to use the OpenRouter statusline',
-    );
+    process.stdout.write("Set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY to use the OpenRouter statusline");
     return;
   }
 
-  let inputData = '';
-  for await (const chunk of process.stdin) {
-    inputData += chunk;
+  let input: StatuslineInput;
+  try {
+    const inputText = await readStdinText();
+    input = JSON.parse(inputText);
+  } catch {
+    process.stdout.write("Invalid statusline input");
+    return;
   }
 
-  const input = JSON.parse(inputData);
   const session_id = input?.session_id;
   const transcript_path = input?.transcript_path;
 
-  if (typeof session_id !== 'string' || typeof transcript_path !== 'string') {
-    process.stdout.write('Invalid statusline input');
+  if (typeof session_id !== "string" || typeof transcript_path !== "string") {
+    process.stdout.write("Invalid statusline input");
     return;
   }
 
-  const statePath = `/tmp/claude-openrouter-cost-${session_id}.json`;
+  const statePath = join(tmpdir(), `claude-openrouter-cost-${session_id}.json`);
   const state = loadState(statePath);
 
   const allIds = extractGenerationIds(transcript_path);
   const seenSet = new Set(state.seen_ids);
   const newIds = allIds.filter((id) => !seenSet.has(id));
 
-  let fetchSucceeded = 0;
   let fetchFailed = 0;
 
   for (const id of newIds) {
@@ -208,16 +193,11 @@ async function main(): Promise<void> {
       continue;
     }
 
-    fetchSucceeded++;
     state.total_cost += gen.total_cost ?? 0;
     state.total_cache_discount += gen.cache_discount ?? 0;
 
-    if (gen.provider_name) {
-      state.last_provider = gen.provider_name;
-    }
-    if (gen.model) {
-      state.last_model = gen.model;
-    }
+    if (gen.provider_name) state.last_provider = gen.provider_name;
+    if (gen.model) state.last_model = gen.model;
 
     state.seen_ids.push(id);
   }
@@ -225,34 +205,37 @@ async function main(): Promise<void> {
   saveState(statePath, state);
 
   const shortModel = shortModelName(state.last_model);
-  let statusIndicator = '';
-  if (newIds.length > 0) {
-    const green = '\x1b[32m';
-    const red = '\x1b[31m';
-    const reset = '\x1b[0m';
+  let statusIndicator = "";
 
-    if (fetchFailed === 0) {
-      statusIndicator = ` ${green}✅️${reset}`;
-    } else {
-      statusIndicator = ` ${red}🔄${reset}`;
-    }
+  if (newIds.length > 0) {
+    const green = "\x1b[32m";
+    const red = "\x1b[31m";
+    const reset = "\x1b[0m";
+    statusIndicator = fetchFailed === 0 ? ` ${green}✅️${reset}` : ` ${red}🔄${reset}`;
   }
 
-
   const credit = await fetchCredit(apiKey);
-  const remain_credits = credit.total_credits - credit.total_usage;
+  const remain_credits =
+    credit && typeof credit.total_credits === "number" && typeof credit.total_usage === "number"
+      ? credit.total_credits - credit.total_usage
+      : NaN;
+
+  const creditsText = Number.isFinite(remain_credits) ? `$${remain_credits.toFixed(2)}` : "N/A";
 
   if (state.last_provider) {
     process.stdout.write(
-      `${shortModel}(${state.last_provider}) | $${state.total_cost.toFixed(4)}(-$${state.total_cache_discount.toFixed(2)}) | Credits: $${remain_credits.toFixed(2)}${statusIndicator}`,
+      `${shortModel}(${state.last_provider}) | $${state.total_cost.toFixed(4)}(-$${state.total_cache_discount.toFixed(
+        2,
+      )}) | Credits: ${creditsText}${statusIndicator}`,
     );
   } else {
     process.stdout.write(
-      `$${state.total_cost.toFixed(4)}(-$${state.total_cache_discount.toFixed(2)}) | Credits: $${remain_credits.toFixed(2)}${statusIndicator}`,
+      `$${state.total_cost.toFixed(4)}(-$${state.total_cache_discount.toFixed(2)}) | Credits: ${creditsText}${statusIndicator}`,
     );
   }
 }
 
-main().catch((err) => {
-  process.stdout.write(`error: ${err.message}`);
+main().catch((err: any) => {
+  process.stdout.write(`error: ${err?.message ?? String(err)}`);
 });
+
