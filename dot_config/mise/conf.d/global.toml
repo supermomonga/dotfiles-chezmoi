@@ -9,6 +9,7 @@ go = "latest"
 # Tools
 chezmoi = "latest"
 neovim = "latest"
+fzf = "latest"
 
 # Packages
 "go:github.com/x-motemen/ghq" = "latest"

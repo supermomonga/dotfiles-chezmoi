@@ -14,6 +14,13 @@ alias rl="source ~/.bash_profile"
 alias gs="git status"
 alias gd="git diff"
 alias che="chezmoi"
+alias g="ghq_list"
+
+function ghq_list() {
+  local repo
+  repo=$(ghq list | fzf) || return
+  cd "$(ghq root)/$repo"
+}
 
 
 eval "$(~/.local/bin/mise activate bash)"
