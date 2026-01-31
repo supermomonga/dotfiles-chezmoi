@@ -32,6 +32,10 @@ alias vim=nvim
 alias cc="cage claude"
 alias ccd="cage claude --dangerously-skip-permissions"
 
+function aiask() {
+    command codex exec --skip-git-repo-check --profile=terminal-command "次の内容を実行するためのbashコマンドを教えて下さい: $1"
+}
+
 # use Neovim instead of Vim in devcontainer.vim
 export DEVCONTAINER_VIM_TYPE=nvim
 alias vimcontainer=devcontainer.vim
