@@ -3,6 +3,19 @@ local wezterm = require 'wezterm'
 -- Creates a config object which we will be adding our config to
 local config = wezterm.config_builder()
 
+if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
+  config.default_domain = 'WSL:Ubuntu-24.04'
+  config.wsl_domains = {
+    {
+      name = 'WSL:Ubuntu-24.04',
+      distribution = 'Ubuntu-24.04',
+      default_cwd = '~',
+    }
+  }
+  -- We are running on Windows; maybe we emit different
+  -- key assignments here?
+end
+
 
 enable_kitty_graphics = true
 

@@ -5,11 +5,14 @@
 bun = "latest"
 deno = "latest"
 go = "latest"
+python = "latest"
 
 # Tools
 chezmoi = "latest"
 neovim = "latest"
 fzf = "latest"
+uv = "latest"
 
 # Packages
 "go:github.com/x-motemen/ghq" = "latest"
+"pipx:edge-tts" = "latest"
