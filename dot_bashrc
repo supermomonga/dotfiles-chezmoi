@@ -129,6 +129,8 @@ if is_wsl; then
   # SSH Agent の設定
   export SSH_AUTH_SOCK=$HOME/.ssh/agent.sock
 
+  alias op='op.exe'
+
   # WSL 起動時に SSH Agent へ自動接続
   if ! ss -a | grep -q $SSH_AUTH_SOCK; then
       rm -f $SSH_AUTH_SOCK

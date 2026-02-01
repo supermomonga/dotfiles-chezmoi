@@ -5,8 +5,10 @@
 bun = "latest"
 deno = "latest"
 go = "latest"
+node = "latest"
 python = "latest"
 rust = "latest"
+zig = "latest"
 
 # Tools
 chezmoi = "latest"
@@ -15,5 +17,12 @@ fzf = "latest"
 uv = "latest"
 
 # Packages
+"cargo:tree-sitter-cli" = "latest"
+"go:github.com/babarot/gomi" = "latest"
 "go:github.com/x-motemen/ghq" = "latest"
+"pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
+
+[settings.npm]
+package_manager = "bun"
+

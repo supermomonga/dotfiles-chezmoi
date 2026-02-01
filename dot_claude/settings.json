@@ -10,6 +10,7 @@
         "hooks": [
           {
             "type": "command",
+            "async": true,
             "command": "curl -d \"ユーザーの許可を求めています\" ntfy.sh/$NTFY_TOPIC"
           }
         ]
@@ -17,10 +18,11 @@
     ],
     "Notification": [
       {
-        "matcher": "",
+        "matcher": "idle_prompt",
         "hooks": [
           {
             "type": "command",
+            "async": true,
             "command": "curl -d \"ユーザーの応答を待っています\" ntfy.sh/$NTFY_TOPIC"
           }
         ]
@@ -32,6 +34,7 @@
         "hooks": [
           {
             "type": "command",
+            "async": true,
             "command": "curl -d \"タスクが完了しました\" ntfy.sh/$NTFY_TOPIC"
           }
         ]
@@ -44,6 +47,7 @@
     "padding": 0
   },
   "enabledPlugins": {
+    "dig@kuu-marketplace": true,
     "lua-lsp@claude-plugins-official": true
   },
   "language": "Japanese",
