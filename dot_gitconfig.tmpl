@@ -12,7 +12,9 @@
 [core]
 {{ if eq .chezmoi.os "linux" }}
 {{   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
-        sshCommand = ssh.exe
+# socat + npipereply.exe でソケット経由で認証するので
+# Linux 側の ssh コマンドのままで OK
+#        sshCommand = ssh.exe
 {{   end }}
 {{ end }}
 

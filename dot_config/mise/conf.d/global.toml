@@ -6,6 +6,7 @@ bun = "latest"
 deno = "latest"
 go = "latest"
 python = "latest"
+rust = "latest"
 
 # Tools
 chezmoi = "latest"
