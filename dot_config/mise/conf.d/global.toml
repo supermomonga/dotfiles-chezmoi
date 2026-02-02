@@ -17,11 +17,20 @@ fzf = "latest"
 uv = "latest"
 
 # Packages
+"cargo:pik" = "latest"
 "cargo:tree-sitter-cli" = "latest"
+"github:sijiaoh/pockode" = "latest"
 "go:github.com/babarot/gomi" = "latest"
+"go:github.com/k1LoW/git-wt" = "latest"
 "go:github.com/x-motemen/ghq" = "latest"
+"npm:happy-coder" = "latest"
 "pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
+
+[settings]
+trusted_config_paths = [
+    "~/ghq",
+]
 
 [settings.npm]
 package_manager = "bun"

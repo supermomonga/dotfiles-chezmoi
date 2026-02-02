@@ -14,13 +14,22 @@ alias rl="source ~/.bash_profile"
 alias gs="git status"
 alias gd="git diff"
 alias che="chezmoi"
-alias g="ghq_list"
 
 function ghq_list() {
   local repo
-  repo=$(ghq list | fzf) || return
+  repo=$(ghq list | grep -Ev -- '-worktrees/[^/]+$' | fzf) || return
   cd "$(ghq root)/$repo"
 }
+alias g="ghq_list"
+
+function git_worktree_list() {
+  local select
+  local repo
+  select=$(git-wt | sed 1d | fzf ) || return
+  repo=$(awk '{print $1}' <<< $select)
+  cd $repo
+}
+alias gw="git_worktree_list"
 
 
 eval "$(~/.local/bin/mise activate bash)"
@@ -29,8 +38,8 @@ eval "$(~/.local/bin/mise activate bash)"
 {{ if eq .chezmoi.os "linux" }}
 {{   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 # use ssh command on host machine(Windows)
-alias ssh='ssh.exe'
-alias ssh-add='ssh-add.exe'
+# alias ssh='ssh.exe'
+# alias ssh-add='ssh-add.exe'
 {{   end }}
 {{ end }}
 

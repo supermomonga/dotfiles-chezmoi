@@ -3,3 +3,5 @@
 
 **/*.local.json
 **/*.local.toml
+
+.pockode

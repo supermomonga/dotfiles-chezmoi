@@ -138,3 +138,6 @@ if is_wsl; then
   fi
 fi
 
+eval "$(git wt --init bash)"
+
+

@@ -31,3 +31,13 @@
 [credential "helperselector"]
         selected = manager
 {{ end }}
+
+[wt]
+        basedir = ../{gitroot}-worktrees
+        copy = .vscode/
+        copy = .env
+        copy = .envrc
+        copy = *.local.toml
+        copy = *.local.yaml
+        copy = *.local.json
+        hook = mise install
