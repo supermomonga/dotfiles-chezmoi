@@ -10,6 +10,7 @@ Host {{ .label }}
     ForwardAgent yes
     TCPKeepAlive yes
     IdentitiesOnly yes
+    PasswordAuthentication no
 {{- end }}
 {{- else }}
 # VULTR_API_KEY is not set — no hosts generated
