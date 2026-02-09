@@ -123,19 +123,17 @@ is_wsl() {
 }
 
 
-if is_wsl; then
-  # use 1Password SSH Agent in Windows Host
-
-  # SSH Agent の設定
+setup_ssh_agent() {
   export SSH_AUTH_SOCK=$HOME/.ssh/agent.sock
-
-  alias op='op.exe'
-
-  # WSL 起動時に SSH Agent へ自動接続
-  if ! ss -a | grep -q $SSH_AUTH_SOCK; then
-      rm -f $SSH_AUTH_SOCK
-      nohup socat UNIX-LISTEN:$SSH_AUTH_SOCK,fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent" >/dev/null 2>&1 &
+  if ! ss -a | grep -q "$SSH_AUTH_SOCK"; then
+    rm -f "$SSH_AUTH_SOCK"
+    nohup socat UNIX-LISTEN:"$SSH_AUTH_SOCK",fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent" >/dev/null 2>&1 &
   fi
+}
+
+if is_wsl; then
+  alias op='op.exe'
+  setup_ssh_agent
 fi
 
 eval "$(git wt --init bash)"
