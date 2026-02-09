@@ -25,9 +25,12 @@ Do not execute `chezmoi apply` without `--dry-run` option to avoid unexpected ef
 
 ## Document lookup
 
+
 Always use Context7 MCP when you need documentation, code generation, setup or configuration steps without me having to explicitly ask.
 
 Use library-id `/twpayne/chezmoi` for querying chezmoi docs.
+
+Do not use MCP tools directly. Spawn `context7-plugin:docs-researcher` to look up documentation.
 
 ## Architecture
 

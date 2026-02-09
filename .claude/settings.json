@@ -1,0 +1,13 @@
+{
+    "enabledPlugins": {
+        "context7-plugin@context7-marketplace": true
+    },
+    "permissions": {
+        "allow": [
+            "WebSearch",
+            "Bash(chezmoi apply --dry-run --debug:*)",
+            "Bash(chezmoi diff:*)",
+            "Bash(chezmoi doctor:*)"
+        ]
+    }
+}
