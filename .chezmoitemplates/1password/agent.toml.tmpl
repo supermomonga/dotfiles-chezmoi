@@ -5,8 +5,9 @@
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
 {{-   $op = "op.exe" -}}
 {{- end -}}
-{{- $items := output $op "item" "list" "--tags" "ssh" "--format" "json" | fromJson -}}
-{{- range $i, $item := $items }}
+{{- $items := output $op "item" "list" "--tags" "ssh" "--format" "json" | fromJson }}
+
+{{ range $i, $item := $items }}
 {{- if $i }}
 {{ end -}}
 [[ssh-keys]]
