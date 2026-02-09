@@ -14,4 +14,6 @@ AppData/**
 {{ end }}
 
 
+.claude
 .mcp.json
+CLAUDE.md
