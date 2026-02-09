@@ -1,0 +1,11 @@
+{{- $op := "op" -}}
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+{{-   $op = "op.exe" -}}
+{{- end -}}
+debug: warn
+oauth2-tokenurl: https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token
+oauth2-clientid: {{ output $op "read" "op://Personal/Contabo/API/client_id" "--no-newline" | quote }}
+oauth2-client-secret: {{ output $op "read" "op://Personal/Contabo/API/client_secret" "--no-newline" | quote }}
+oauth2-user: {{ output $op "read" "op://Personal/Contabo/username" "--no-newline" | quote }}
+oauth2-password: {{ output $op "read" "op://Personal/Contabo/password" "--no-newline" | quote }}
+api: https://api.contabo.com

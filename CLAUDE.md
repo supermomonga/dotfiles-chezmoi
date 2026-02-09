@@ -78,8 +78,10 @@ Global tools are defined in `dot_config/mise/conf.d/global.toml.tmpl`:
 
 `.tmpl` ファイル内で chezmoi の `output` 関数経由で利用可能な外部コマンド:
 
-- `vultr-cli` — Vultr インスタンス情報の取得（`private_dot_ssh/private_config.tmpl` で使用）
-- `jq` — JSON の加工・フィルタリング
+- `vultr-cli` - Vultr インスタンス情報の取得（`private_dot_ssh/private_config.tmpl` で使用）
+- `cntb` - Contabo インスタンス情報の取得（`private_dot_ssh/private_config.tmpl` で使用）
+- `jq` - JSON の加工・フィルタリング
+- `op` - 1Password に保存された情報の取得 (e.g. `op read [reference_path]`) / WSLの場合は `op.exe` を使用すること
 
 ### Git Worktree Workflow
 
