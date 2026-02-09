@@ -17,3 +17,6 @@ AppData/**
 .claude
 .mcp.json
 CLAUDE.md
+
+mise.toml
+mise.local.toml
