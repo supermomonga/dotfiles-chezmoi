@@ -74,6 +74,13 @@ Global tools are defined in `dot_config/mise/conf.d/global.toml.tmpl`:
 - StatusLine: ccstatusline with OpenRouter cost tracking (`dot_config/ccstatusline/`)
 - Plugins: dig (kuu-marketplace), lua-lsp (claude-plugins-official)
 
+### Available Tools in Templates
+
+`.tmpl` ファイル内で chezmoi の `output` 関数経由で利用可能な外部コマンド:
+
+- `vultr-cli` — Vultr インスタンス情報の取得（`private_dot_ssh/private_config.tmpl` で使用）
+- `jq` — JSON の加工・フィルタリング
+
 ### Git Worktree Workflow
 
 The gitconfig configures `git-wt` with worktree basedir at `../{gitroot}-worktrees`, auto-copying `.vscode/`, `.env`, `.envrc`, and local config files, and running `mise install` as a post-create hook.

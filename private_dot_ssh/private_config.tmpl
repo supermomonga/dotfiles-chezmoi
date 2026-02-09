@@ -6,7 +6,7 @@
 Host {{ .label }}
     HostName {{ .main_ip }}
     Port 22
-    User code
+    User {{ if eq .user_scheme "root" }}root{{ else }}linuxuser{{ end }}
     ForwardAgent yes
     TCPKeepAlive yes
     IdentitiesOnly yes
