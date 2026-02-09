@@ -9,7 +9,6 @@ Host {{ .label }}
     User {{ if eq .user_scheme "root" }}root{{ else }}linuxuser{{ end }}
     ForwardAgent yes
     TCPKeepAlive yes
-    IdentitiesOnly yes
     PasswordAuthentication no
 {{- end }}
 {{- else }}
