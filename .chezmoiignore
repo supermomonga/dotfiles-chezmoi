@@ -13,3 +13,5 @@ AppData/**
 .config/1Password/
 {{ end }}
 
+
+.mcp.json
