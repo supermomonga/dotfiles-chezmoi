@@ -122,10 +122,11 @@ is_wsl() {
   return 1
 }
 
-
-setup_ssh_agent() {
+# Use Windows host machine's 1Password SSH Agent
+setup_op_ssh_agent() {
   export SSH_AUTH_SOCK=$HOME/.ssh/agent.sock
-  if ! ss -a | grep -q "$SSH_AUTH_SOCK"; then
+  if ! ssh-add -l >/dev/null 2>&1; then
+    pkill -f "socat.*$SSH_AUTH_SOCK" 2>/dev/null
     rm -f "$SSH_AUTH_SOCK"
     nohup socat UNIX-LISTEN:"$SSH_AUTH_SOCK",fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent" >/dev/null 2>&1 &
   fi
@@ -133,7 +134,7 @@ setup_ssh_agent() {
 
 if is_wsl; then
   alias op='op.exe'
-  setup_ssh_agent
+  setup_op_ssh_agent
 fi
 
 eval "$(git wt --init bash)"
