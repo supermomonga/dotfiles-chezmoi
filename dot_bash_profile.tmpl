@@ -8,8 +8,8 @@ HISTFILESIZE=10000000
 
 export EDITOR=nvim
 
-alias tn="tmux new -s main"
-alias ta="tmux a -t main"
+tn() { tmux new -s "${1:-main}"; }
+ta() { tmux a -t "${1:-main}"; }
 alias rl="source ~/.bash_profile"
 alias gs="git status"
 alias gd="git diff"
@@ -30,6 +30,13 @@ function git_worktree_list() {
   cd $repo
 }
 alias gw="git_worktree_list"
+
+function attach_tmux_session_list() {
+  local session
+  session=$(tmux list-sessions -F '#{session_name}' | fzf) || return
+  tmux a -t "$session"
+}
+alias tl="attach_tmux_session_list"
 
 
 eval "$(~/.local/bin/mise activate bash)"

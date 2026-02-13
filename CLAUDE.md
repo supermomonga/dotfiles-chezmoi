@@ -83,6 +83,12 @@ Global tools are defined in `dot_config/mise/conf.d/global.toml.tmpl`:
 - `jq` - JSON の加工・フィルタリング
 - `op` - 1Password に保存された情報の取得 (e.g. `op read [reference_path]`) / WSLの場合は `op.exe` を使用すること
 
+### Available secrets in Templates
+
+`.tmpl` ファイル内で chezmoi の 1password-cli 経由で参照されることを想定しているシークレット:
+
+- `op://Personal/GreenCloud VPS/api_key` - GreenCloud VPS の API キー
+
 ### Git Worktree Workflow
 
 The gitconfig configures `git-wt` with worktree basedir at `../{gitroot}-worktrees`, auto-copying `.vscode/`, `.env`, `.envrc`, and local config files, and running `mise install` as a post-create hook.

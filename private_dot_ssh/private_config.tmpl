@@ -33,3 +33,20 @@ Host {{ .displayName | kebabcase }}
 {{- else }}
 # cntb is not available — no Contabo hosts generated
 {{- end }}
+
+# --- GreenCloud ---
+{{- $op := "op" -}}
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+{{-   $op = "op.exe" -}}
+{{- end -}}
+{{- $gcApiKey := output $op "read" "op://Personal/GreenCloud VPS/api_key" "--no-newline" -}}
+{{- $gcData := output "curl" "-sf" "https://cp.green.cloud/api/server" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $gcApiKey) | fromJson -}}
+{{- range $gcData.data }}
+
+Host {{ .name | kebabcase }}
+    HostName {{ (index .network.primary.ipv4 0).address }}
+    Port 22
+    User main
+    ForwardAgent yes
+    TCPKeepAlive yes
+{{- end }}

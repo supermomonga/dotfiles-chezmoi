@@ -139,4 +139,7 @@ fi
 
 eval "$(git wt --init bash)"
 
+eval "$(~/.local/bin/mise activate bash)"
+
+eval "$(starship init bash)"
 
