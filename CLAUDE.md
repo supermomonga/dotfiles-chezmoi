@@ -10,10 +10,10 @@ This is a **chezmoi** dotfiles repository managed by user `supermomonga`. chezmo
 
 ```bash
 # Dry-run for debug
-chezmoi apply --dry-run --debug
+chezmoi apply ~/.some_config --dry-run --debug
 
 # Preview what would change (diff)
-chezmoi diff
+chezmoi diff ~/.some_config
 
 # Add a new file to chezmoi management
 chezmoi add ~/.some_config
@@ -22,6 +22,8 @@ chezmoi add ~/.some_config
 ## Rules
 
 Do not execute `chezmoi apply` without `--dry-run` option to avoid unexpected effect. You have to always use `--dry-run` option for debugging.
+
+You MUST specify target file when using `chezmoi apply`, `chezmoi diff`, and other command, because some template files requires user's auth (via Windows Hello), so it'll be blocking.
 
 ## Document lookup
 
