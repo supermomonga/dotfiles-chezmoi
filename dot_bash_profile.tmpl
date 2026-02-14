@@ -15,6 +15,9 @@ alias gs="git status"
 alias gd="git diff"
 alias che="chezmoi"
 
+alias cc="cage claude --allow-dangerously-skip-permissions"
+alias ccd="cage claude --dangerously-skip-permissions"
+
 function ghq_list() {
   local repo
   repo=$(ghq list | grep -Ev -- '-worktrees/[^/]+$' | fzf) || return

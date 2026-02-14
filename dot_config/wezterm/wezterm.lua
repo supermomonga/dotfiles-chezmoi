@@ -68,7 +68,7 @@ config.font = wezterm.font({
         'ss11',                       -- 半濁点の強調 [ぱぴぷぺぽ パピプペポ]
     }
 })
-config.font_size = 10
+config.font_size = 12
 
 
 config.use_resize_increments = true
@@ -88,7 +88,7 @@ config.window_frame = {
     -- serif font here instead of monospace for a nicer look?
     -- font = wezterm.font({ family = 'Berkeley Mono', weight = 'Bold' }),
     font = wezterm.font({ family = 'Firple Slim', weight = 'Regular' }),
-    font_size = 10,
+    font_size = 12,
 }
 
 
