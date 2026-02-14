@@ -137,6 +137,11 @@ if is_wsl; then
   setup_op_ssh_agent
 fi
 
+# tmux セッション名を WezTerm user var として通知
+if [ -n "$TMUX" ]; then
+  __wezterm_set_user_var TMUX_SESSION "$(tmux display-message -p '#S')"
+fi
+
 eval "$(git wt --init bash)"
 
 eval "$(~/.local/bin/mise activate bash)"
