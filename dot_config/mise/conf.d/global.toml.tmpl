@@ -9,6 +9,7 @@ node = "latest"
 python = "latest"
 rust = "latest"
 zig = "latest"
+lua = "5.1" # for Neovim compatibility
 
 # Tools
 chezmoi = "latest"
@@ -40,3 +41,6 @@ trusted_config_paths = [
 [settings.npm]
 package_manager = "bun"
 
+[env]
+# v3.13.0 broken now https://github.com/luarocks/luarocks/issues/1851
+LUAROCKS_VERSION = "3.12.2"
