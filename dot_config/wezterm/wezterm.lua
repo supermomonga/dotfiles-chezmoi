@@ -70,7 +70,7 @@ config.font = wezterm.font({
 })
 config.font_size = 11
 
-
+ 
 config.use_resize_increments = true
 
 -- Slightly transparent and blurred background
@@ -179,7 +179,7 @@ local function resolve_base_title(pane, exec, title, user_vars)
         local cmd = prog:match("^%S+")
         if cmd then
             cmd = cmd:match("([^/]+)$") or cmd
-            return cmd
+            return " " .. cmd
         end
     end
 
@@ -201,9 +201,9 @@ local function resolve_base_title(pane, exec, title, user_vars)
             path = path:gsub("^/home/[^/]+", "~")
             local dir = path:match("([^/]+)/?$")
             if dir and dir ~= "" then
-                return dir
+                return " " .. dir
             end
-            return "~"
+            return " ~"
         end
     end
 
@@ -232,7 +232,7 @@ local function get_tab_display_title(pane)
     if user_vars.WEZTERM_IN_TMUX == "1" then
         local session = user_vars.TMUX_SESSION or ""
         if session ~= "" then
-            return " " .. session .. "  " .. base
+            return " " .. session .. " " .. base
         else
             return " " .. base
         end
