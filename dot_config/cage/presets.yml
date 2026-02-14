@@ -1,0 +1,88 @@
+presets:
+  # common presets
+  git:
+    allow:
+      - "."
+      - "$HOME/.ssh"
+    allow-git: true
+    allow-keychain: true  # macOS only
+  tmp:
+    allow:
+      - "$HOME/tmp"
+      - "/tmp"
+      - "/private/tmp" # macOS only
+      - "/dev"
+  cache:
+    allow:
+      - "$HOME/.cache"
+      - "$HOME/Library/Caches"
+  stdout:
+    allow:
+      - "/dev/stdout"
+      - "/dev/stderr"
+      - "/dev/null"
+      - "/dev/dtracehelper"
+
+  # command specific
+  npm:
+    allow:
+      - "."
+      - "$HOME/.npm"
+      - "$HOME/.cache/npm"
+      - "$HOME/.npmrc"
+  uv:
+    allow:
+      - "."
+      - "$HOME/.cache/uv"
+      - "$HOME/.local/share/uv"
+  dotnet:
+    allow:
+      - "."
+      - "$HOME/.local/share/NuGet"
+      - "$HOME/.nuget"
+      - "$HOME/.dotnet"
+  cargo:
+    allow:
+      - "."
+      - "$HOME/.cargo"
+      - "$HOME/.rustup"
+      - "$HOME/.cache/sccache"
+  claudecode: # claude code
+    allow:
+      - "."
+      - "$HOME/.claude"
+      - "$HOME/.config/claude"
+      - "$HOME/.claude.json"
+      - "$HOME/.claude.json.backup"
+      - "$HOME/.claude.json.lock"
+      - "$HOME/.claude.lock"
+      - "$HOME/Library/Application Support/Code/"
+    allow-keychain: true # セッション情報をKeychain経由で記録するらしい
+  opencode: # open code
+    allow:
+      - "."
+      - "$HOME/.opencode"
+      - "$HOME/.config/opencode"
+      - "$HOME/.local/state/opencode"
+      - "$HOME/.local/share/opencode"
+    allow-keychain: true # セッション情報をKeychain経由で記録するらしい
+
+auto-presets:
+  - command: claude
+    presets:
+      - claudecode
+      - uv # for MCP server using uvx
+      - npm # for MCP server using npx
+      - dotnet
+      - git
+      - tmp
+      - cache
+      - stdout
+  - command: opencode
+    presets:
+      - opencode
+      - npm # for MCP server using npx
+      - git
+      - tmp
+      - cache
+      - stdout
