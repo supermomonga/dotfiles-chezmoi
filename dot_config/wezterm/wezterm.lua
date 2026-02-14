@@ -234,9 +234,9 @@ local function get_tab_display_title(pane)
     if user_vars.WEZTERM_IN_TMUX == "1" then
         local session = user_vars.TMUX_SESSION or ""
         if session ~= "" then
-            return " " .. session .. " " .. base
+            return " " .. session
         else
-            return " " .. base
+            return base
         end
     end
 
