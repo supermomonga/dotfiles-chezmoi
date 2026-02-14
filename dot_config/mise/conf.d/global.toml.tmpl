@@ -22,17 +22,20 @@ starship = "latest"
 
 # Packages
 "cargo:pik" = "latest"
+"cargo:ultraman" = "latest"
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
 "go:github.com/Warashi/cage" = "latest"
 "go:github.com/x-motemen/ghq" = "latest"
 "npm:@openai/codex" = "latest"
+"npm:rulesync" = "latest"
 "pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
 
 
 {{ if ne .chezmoi.os "windows" }}
 "github:sijiaoh/pockode" = "latest"
+"github:lightpanda-io/browser" = "nightly"
 {{ end }}
 
 [settings]
@@ -46,3 +49,11 @@ package_manager = "bun"
 [env]
 # v3.13.0 broken now https://github.com/luarocks/luarocks/issues/1851
 LUAROCKS_VERSION = "3.12.2"
+
+[tasks.sync-rule]
+description = "Sync agents' rules from claude code to others"
+run = 'rulesync import -t claudecode -f "*" -V; rulesync generate -t codexcli -f "*" -V'
+
+[tasks.sync-rule-global]
+description = "Sync agents' rules from claude code to others"
+run = 'rulesync import -g -t claudecode -f "*" -V; rulesync generate -g -t codexcli -f "*" -V'

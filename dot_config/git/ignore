@@ -4,4 +4,7 @@
 **/*.local.json
 **/*.local.toml
 
+.rulesync
 .pockode
+
+.playwright-cli
