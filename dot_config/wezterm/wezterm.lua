@@ -232,15 +232,16 @@ local function get_tab_display_title(pane)
     if user_vars.WEZTERM_IN_TMUX == "1" then
         local session = user_vars.TMUX_SESSION or ""
         if session ~= "" then
-            return "tmux[" .. session .. "] " .. base
+            return " " .. session .. "  " .. base
         else
-            return "tmux " .. base
+            return " " .. base
         end
     end
 
     return base
 end
 
+config.tab_max_width = 30
 wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
     local background = "#2D2D2D"
     local foreground = "#ccc"
