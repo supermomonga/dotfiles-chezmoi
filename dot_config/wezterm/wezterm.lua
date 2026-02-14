@@ -3,6 +3,8 @@ local wezterm = require 'wezterm'
 -- Creates a config object which we will be adding our config to
 local config = wezterm.config_builder()
 
+config.window_close_confirmation = 'NeverPrompt'
+
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
   config.default_domain = 'WSL:Ubuntu-24.04'
   config.wsl_domains = {
