@@ -58,6 +58,11 @@ presets:
       - "$HOME/.claude.lock"
       - "$HOME/Library/Application Support/Code/"
     allow-keychain: true # セッション情報をKeychain経由で記録するらしい
+  codexcli: # claude code
+    allow:
+      - "."
+      - "$HOME/.codex"
+    allow-keychain: true # セッション情報をKeychain経由で記録するらしい
   opencode: # open code
     allow:
       - "."
@@ -71,6 +76,16 @@ auto-presets:
   - command: claude
     presets:
       - claudecode
+      - uv # for MCP server using uvx
+      - npm # for MCP server using npx
+      - dotnet
+      - git
+      - tmp
+      - cache
+      - stdout
+  - command: codex
+    presets:
+      - codexcli
       - uv # for MCP server using uvx
       - npm # for MCP server using npx
       - dotnet
