@@ -1,0 +1,42 @@
+PermissionRequest:
+  - actions:
+    - type: command
+      command: edge-playback -v ja-JP-NanamiNeural -t "クロードが許可を求めています"
+
+Notification:
+  - actions:
+    - type: command
+      command: edge-playback -v ja-JP-NanamiNeural -t "クロードからの通知があります"
+
+Stop:
+  - actions:
+    - type: command
+      command: edge-playback -v ja-JP-NanamiNeural -t "クロードがタスクを完了しました"
+
+
+# Auto-format Go files after Write/Edit
+PostToolUse:
+  - matcher: "Write|Edit"
+    conditions:
+      - type: file_extension
+        value: ".go"
+    actions:
+      - type: command
+        command: "gofmt -w {.tool_input.file_path}"
+
+# Guide users to use better alternatives
+PreToolUse:
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "python"
+    actions:
+      - type: output
+        message: "pythonは使わず`uv`を代わりに使いましょう"
+  - matcher: "WebFetch"
+    conditions:
+      - type: url_starts_with
+        value: "https://github.com"
+    actions:
+      - type: output
+        message: "WebFetchではなく、`gh`コマンド経由で情報を取得しましょう"
