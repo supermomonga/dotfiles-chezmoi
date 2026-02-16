@@ -23,10 +23,12 @@ starship = "latest"
 # Packages
 "cargo:pik" = "latest"
 "cargo:ultraman" = "latest"
+"github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
+"github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
 "go:github.com/syou6162/cchook" = "latest"
-"go:github.com/Warashi/cage" = "latest"
+"go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
 "go:github.com/x-motemen/ghq" = "latest"
 "npm:@openai/codex" = "latest"
 "npm:agent-browser" = "latest"
@@ -35,10 +37,6 @@ starship = "latest"
 "pipx:edge-tts" = "latest"
 
 
-{{ if ne .chezmoi.os "windows" }}
-"github:sijiaoh/pockode" = "latest"
-"github:lightpanda-io/browser" = "nightly"
-{{ end }}
 
 [settings]
 trusted_config_paths = [
