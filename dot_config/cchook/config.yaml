@@ -33,6 +33,20 @@ PreToolUse:
     actions:
       - type: output
         message: "pythonは使わず`uv`を代わりに使いましょう"
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "pip"
+    actions:
+      - type: output
+        message: "pipは使わず`uv add`を代わりに使いましょう"
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "python -m pip"
+    actions:
+      - type: output
+        message: "pipは使わず`uv add`を代わりに使いましょう"
   - matcher: "WebFetch"
     conditions:
       - type: url_starts_with
