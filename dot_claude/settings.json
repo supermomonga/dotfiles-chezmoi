@@ -11,7 +11,7 @@
           {
             "type": "command",
             "async": true,
-            "command": "curl -d \"ユーザーの許可を求めています\" ntfy.sh/$NTFY_TOPIC"
+            "command": "curl -d \"クロードがユーザーの許可を求めています\" ntfy.sh/$NTFY_TOPIC"
           }
         ]
       }
@@ -23,7 +23,7 @@
           {
             "type": "command",
             "async": true,
-            "command": "curl -d \"ユーザーの応答を待っています\" ntfy.sh/$NTFY_TOPIC"
+            "command": "curl -d \"クロードがユーザーの応答を待っています\" ntfy.sh/$NTFY_TOPIC"
           }
         ]
       }
@@ -35,7 +35,7 @@
           {
             "type": "command",
             "async": true,
-            "command": "curl -d \"タスクが完了しました\" ntfy.sh/$NTFY_TOPIC"
+            "command": "curl -d \"クロードがタスクを完了しました\" ntfy.sh/$NTFY_TOPIC"
           }
         ]
       }
