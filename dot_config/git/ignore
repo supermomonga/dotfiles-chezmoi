@@ -8,3 +8,5 @@
 .pockode
 
 .playwright-cli
+
+.DS_Store
