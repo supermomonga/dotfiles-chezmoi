@@ -57,11 +57,13 @@ presets:
       - "$HOME/.claude.json.lock"
       - "$HOME/.claude.lock"
       - "$HOME/Library/Application Support/Code/"
+      - "/tmp/nvim.mcp.claude"
     allow-keychain: true # セッション情報をKeychain経由で記録するらしい
   codexcli: # claude code
     allow:
       - "."
       - "$HOME/.codex"
+      - "/tmp/nvim.mcp.codex"
     allow-keychain: true # セッション情報をKeychain経由で記録するらしい
   opencode: # open code
     allow:

@@ -32,3 +32,14 @@ approval_policy = "on-request"
 [mcp_servers.context7]
 url = "https://mcp.context7.com/mcp"
 env_http_headers = { "CONTEXT7_API_KEY" = "CONTEXT7_API_KEY" }
+
+{{- $ghqRoot := output "ghq" "root" | trim }}
+{{- $repos := output "ghq" "list" | splitList "\n" }}
+
+[projects]
+{{ range $repos -}}
+{{   if hasPrefix "github.com/supermomonga/" . }}
+[projects."{{ $ghqRoot }}/{{ . }}"]
+trust_level = "trusted"
+{{ end -}}
+{{ end -}}
