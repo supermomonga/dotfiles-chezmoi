@@ -20,12 +20,16 @@ alias ccd="cage claude --dangerously-skip-permissions"
 alias co="cage codex"
 alias cod="cage codex --yolo"
 
-function ghq_list() {
+function repo_list() {
   local repo
-  repo=$(ghq list | grep -Ev -- '-worktrees/[^/]+$' | fzf) || return
-  cd "$(ghq root)/$repo"
+  repo=$( { ghq list | grep -Ev -- '-worktrees/[^/]+$'; echo '.local/share/chezmoi'; } | fzf) || return
+  if [[ "$repo" == '.local/share/chezmoi' ]]; then
+    cd "$HOME/.local/share/chezmoi"
+  else
+    cd "$(ghq root)/$repo"
+  fi
 }
-alias g="ghq_list"
+alias g="repo_list"
 
 function git_worktree_list() {
   local select
