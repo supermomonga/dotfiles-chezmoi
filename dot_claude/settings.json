@@ -10,8 +10,8 @@
         "hooks": [
           {
             "type": "command",
-            "async": true,
-            "command": "cchook -event PermissionRequest"
+            "command": "cchook -event PermissionRequest",
+            "async": true
           }
         ]
       }
@@ -22,8 +22,8 @@
         "hooks": [
           {
             "type": "command",
-            "async": true,
-            "command": "cchook -event Notification"
+            "command": "cchook -event Notification",
+            "async": true
           }
         ]
       }
@@ -34,8 +34,8 @@
         "hooks": [
           {
             "type": "command",
-            "async": true,
-            "command": "cchook -event Stop"
+            "command": "cchook -event Stop",
+            "async": true
           }
         ]
       }
@@ -48,10 +48,8 @@
   },
   "enabledPlugins": {
     "dig@kuu-marketplace": true,
-    "context7@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true
+    "context7@claude-plugins-official": true
   },
-  "skipDangerousModePermissionPrompt": true,
   "language": "Japanese",
-  "model": "opus"
+  "skipDangerousModePermissionPrompt": true
 }

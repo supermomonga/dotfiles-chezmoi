@@ -53,8 +53,8 @@ LUAROCKS_VERSION = "3.12.2"
 
 [tasks.sync-rule]
 description = "Sync agents' rules from claude code to others"
-run = 'rulesync import -t claudecode -f "*" -V; rulesync generate -t codexcli -f "*" -V'
+run = 'rulesync import -t claudecode -f "*" -V; rulesync generate -t "codexcli,opencode" -f "*" -V'
 
 [tasks.sync-rule-global]
 description = "Sync agents' rules from claude code to others"
-run = 'rulesync import -g -t claudecode -f "*" -V; rulesync generate -g -t codexcli -f "*" -V'
+run = 'rulesync import -g -t claudecode -f "*" -V; rulesync generate -g -t "codexcli,opencode" -f "*" -V'
