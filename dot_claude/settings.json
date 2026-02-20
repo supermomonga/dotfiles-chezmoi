@@ -12,6 +12,11 @@
             "type": "command",
             "command": "cchook -event PermissionRequest",
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "wezterm-bell 🔔",
+            "async": true
           }
         ]
       }
@@ -24,6 +29,11 @@
             "type": "command",
             "command": "cchook -event Notification",
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "wezterm-bell 🔔",
+            "async": true
           }
         ]
       }
@@ -35,6 +45,11 @@
           {
             "type": "command",
             "command": "cchook -event Stop",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "wezterm-bell 🔔",
             "async": true
           }
         ]

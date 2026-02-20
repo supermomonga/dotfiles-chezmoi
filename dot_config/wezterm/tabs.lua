@@ -2,9 +2,6 @@ local wezterm = require 'wezterm'
 
 local M = {}
 
-local SOLID_LEFT_ARROW = wezterm.nerdfonts.ple_left_half_circle_thick
-local SOLID_RIGHT_ARROW = wezterm.nerdfonts.ple_right_half_circle_thick
-
 -- WSLのwslhost.exeなど、Windows側ラッパープロセスを検出して
 -- WEZTERM_PROG / WEZTERM_IN_TMUX や実際のタイトル、カレントディレクトリにフォールバックする
 local wsl_wrappers = { wslhost = true, wsl = true, conhost = true }
@@ -80,6 +77,42 @@ local function get_tab_display_title(pane)
     return base
 end
 
+-- =====================================================================
+-- Bell 通知
+--
+-- 外部スクリプト (wezterm-bell) が OSC 1337 SetUserVar=BELL=<base64(emoji)>
+-- を送信すると user-var-changed が発火し、ここで状態を管理する。
+--
+-- 表示条件:
+--   タブが非アクティブ、または アクティブだが WezTerm が前面でない場合に 🔔 等を表示
+-- クリア条件:
+--   非アクティブタブ → タブをアクティブにしたとき
+--   アクティブタブ   → WezTerm ウィンドウがフォーカスを取得したとき
+-- =====================================================================
+
+-- pane_id → { emoji_string → true }  (セットとして使用、重複排除)
+local bell_state = {}
+
+-- WezTerm ウィンドウごとの状態追跡 (update-status 用)
+local prev_focused        = {}  -- [win_id] → bool
+local prev_active_pane_id = {}  -- [win_id] → pane_id
+
+local function get_bell_string(pane_id)
+    local state = bell_state[pane_id]
+    if not state then return "" end
+    local result = ""
+    for emoji in pairs(state) do
+        result = result .. emoji
+    end
+    return result
+end
+
+local function clear_bell(pane)
+    bell_state[pane:pane_id()] = nil
+    -- BELL を空にリセット（次回の user-var-changed がクリア信号として扱う）
+    pane:inject_output('\x1b]1337;SetUserVar=BELL=\x07')
+end
+
 function M.apply_to_config(config)
     config.tab_max_width = 30
 
@@ -89,6 +122,51 @@ function M.apply_to_config(config)
         inactive_tab_edge = "none",
     }
 
+    -- BELL ユーザー変数が変化したときに発火
+    wezterm.on('user-var-changed', function(window, pane, name, value)
+        if name ~= 'BELL' then return end
+
+        local pane_id = pane:pane_id()
+
+        -- 空値はクリア信号（inject_output によるリセット時に発火）
+        if value == '' then
+            bell_state[pane_id] = nil
+            return
+        end
+
+        -- 絵文字をセットに追加（同じ絵文字は重複しない）
+        bell_state[pane_id] = bell_state[pane_id] or {}
+        bell_state[pane_id][value] = true
+
+        -- すでにユーザーがこのペインを見ている場合は即クリア
+        -- (アクティブタブ かつ WezTerm がフォーカス中)
+        if window:active_pane():pane_id() == pane_id and window:is_focused() then
+            clear_bell(pane)
+        end
+    end)
+
+    -- タブ切り替え・WezTerm フォーカス復帰時にベルをクリア
+    wezterm.on('update-status', function(window, pane)
+        local win_id  = window:window_id()
+        local pane_id = pane:pane_id()
+        local is_focused = window:is_focused()
+
+        local was_focused = prev_focused[win_id]
+        local prev_id     = prev_active_pane_id[win_id]
+
+        -- 変化検知
+        local just_gained_focus = was_focused ~= nil and not was_focused and is_focused
+        local just_switched_to  = prev_id ~= nil and prev_id ~= pane_id
+
+        prev_focused[win_id]        = is_focused
+        prev_active_pane_id[win_id] = pane_id
+
+        -- ベルが立っているペインにユーザーが注目し始めたらクリア
+        if bell_state[pane_id] and (just_gained_focus or just_switched_to) then
+            clear_bell(pane)
+        end
+    end)
+
     wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         local background = "#2D2D2D"
         local foreground = "#ccc"
@@ -97,7 +175,10 @@ function M.apply_to_config(config)
             foreground = "#FFFFFF"
         end
 
-        local title = " " .. wezterm.truncate_right(get_tab_display_title(tab.active_pane), max_width - 1) .. " "
+        local pane_id = tab.active_pane.pane_id
+        local bells   = get_bell_string(pane_id)
+        local base    = (bells ~= "" and (bells .. " ") or "") .. get_tab_display_title(tab.active_pane)
+        local title   = " " .. wezterm.truncate_right(base, max_width - 2) .. " "
 
         return {
             { Background = { Color = background } },
