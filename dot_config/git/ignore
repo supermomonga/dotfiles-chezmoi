@@ -3,6 +3,8 @@
 
 **/*.local.json
 **/*.local.toml
+**/*.local.yaml
+**/*.local.md
 
 .rulesync
 .pockode
