@@ -25,6 +25,7 @@ starship = "latest"
 "cargo:ultraman" = "latest"
 "github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
 "github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
+"github:corrupt952/tmuxist" = "latest"
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
 "go:github.com/syou6162/cchook" = "latest"

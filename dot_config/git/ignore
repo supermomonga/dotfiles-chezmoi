@@ -10,3 +10,6 @@
 .playwright-cli
 
 .DS_Store
+
+tmuxist.*
+.tmuxist.*

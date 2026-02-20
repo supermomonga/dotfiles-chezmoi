@@ -10,6 +10,8 @@ export EDITOR=nvim
 
 tn() { tmux new -s "${1:-main}"; }
 ta() { tmux a -t "${1:-main}"; }
+alias ts="tmuxist start"
+alias tk="tmuxist kill"
 alias rl="source ~/.bash_profile"
 alias gs="git status"
 alias gd="git diff"
