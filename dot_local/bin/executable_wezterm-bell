@@ -9,9 +9,6 @@
 
 EMOJI="${1:-🔔}"
 
-# WezTerm 外で実行された場合は何もしない
-[ -z "${WEZTERM_PANE:-}" ] && exit 0
-
 # tty を取得（tmux 内の場合はクライアントの tty を使って tmux をバイパスする）
 if [ -n "${TMUX:-}" ]; then
     tty="$(tmux display-message -p '#{client_tty}')"
@@ -19,6 +16,7 @@ else
     tty="/dev/tty"
 fi
 
+# tty が取れない場合は WezTerm 外とみなして何もしない
 [ -z "$tty" ] && exit 0
 
 encoded=$(printf '%s' "$EMOJI" | base64 | tr -d '\n')
