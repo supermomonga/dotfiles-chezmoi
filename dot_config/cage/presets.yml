@@ -85,6 +85,16 @@ auto-presets:
       - tmp
       - cache
       - stdout
+  - command: glmcode
+    presets:
+      - claudecode
+      - uv # for MCP server using uvx
+      - npm # for MCP server using npx
+      - dotnet
+      - git
+      - tmp
+      - cache
+      - stdout
   - command: codex
     presets:
       - codexcli

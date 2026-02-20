@@ -17,6 +17,8 @@ alias che="chezmoi"
 
 alias cc="cage claude --allow-dangerously-skip-permissions"
 alias ccd="cage claude --dangerously-skip-permissions"
+alias glm="cage glmcode --allow-dangerously-skip-permissions"
+alias glmd="cage glmcode --dangerously-skip-permissions"
 alias co="cage codex"
 alias cod="cage codex --yolo"
 
