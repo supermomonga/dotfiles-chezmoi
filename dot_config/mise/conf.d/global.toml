@@ -26,9 +26,9 @@ starship = "latest"
 "github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
 "github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
 "github:corrupt952/tmuxist" = "latest"
+"github:prskr/git-age" = "latest"
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
-"go:github.com/prskr/git-age" = "latest"
 "go:github.com/syou6162/cchook" = "latest"
 "go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
 "go:github.com/x-motemen/ghq" = "latest"

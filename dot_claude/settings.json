@@ -29,11 +29,6 @@
             "type": "command",
             "command": "cchook -event Notification",
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "wezterm-bell 🔔",
-            "async": true
           }
         ]
       }
@@ -63,7 +58,8 @@
   },
   "enabledPlugins": {
     "dig@kuu-marketplace": true,
-    "context7@claude-plugins-official": true
+    "context7@claude-plugins-official": true,
+    "team-builder@claude-code-customes": true
   },
   "language": "Japanese",
   "skipDangerousModePermissionPrompt": true

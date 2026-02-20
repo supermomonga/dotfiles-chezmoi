@@ -3,11 +3,6 @@ PermissionRequest:
     - type: command
       command: edge-playback -v ja-JP-NanamiNeural -t "クロードが許可を求めています"
 
-Notification:
-  - actions:
-    - type: command
-      command: edge-playback -v ja-JP-NanamiNeural -t "クロードからの通知があります"
-
 Stop:
   - actions:
     - type: command
