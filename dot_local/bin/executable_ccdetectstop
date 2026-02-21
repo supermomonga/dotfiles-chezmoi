@@ -1,0 +1,127 @@
+#!/usr/bin/env bun
+
+import { watch, existsSync } from "fs";
+import { basename, join } from "path";
+
+const WATCH_DIR = join(process.env.HOME!, ".claude", "projects");
+
+/** ファイルごとに処理済みの最大 timestamp を記憶 */
+const lastTimestamp = new Map<string, string>();
+
+/** デバウンス用タイマー */
+const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const DEBOUNCE_MS = 300;
+
+function matchesFilter(obj: Record<string, unknown>): boolean {
+  const data = obj.data as Record<string, unknown> | undefined;
+  return (
+    data?.hookEvent === "Stop" &&
+    data?.command === "true stop" &&
+    obj.teamName == null
+  );
+}
+
+async function processFile(filePath: string): Promise<void> {
+  let content: string;
+  try {
+    content = await Bun.file(filePath).text();
+  } catch {
+    return;
+  }
+
+  const lines = content.trimEnd().split("\n");
+  const name = basename(filePath, ".jsonl");
+  const isFirst = !lastTimestamp.has(filePath);
+
+  // 初回: 最新の timestamp を記録するだけ
+  if (isFirst) {
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const obj = JSON.parse(lines[i]);
+        const ts = obj.timestamp as string | undefined;
+        if (ts != null) {
+          lastTimestamp.set(filePath, ts);
+          console.log(`[${name}]: 監視開始`);
+          return;
+        }
+      } catch {
+        continue;
+      }
+    }
+    lastTimestamp.set(filePath, "");
+    return;
+  }
+
+  const prevTs = lastTimestamp.get(filePath)!;
+  let maxTs = prevTs;
+  let matched = false;
+  let count = 0;
+
+  // 末尾から1行ずつ読み、前回 timestamp 以降のデータを最大100行取得
+  for (let i = lines.length - 1; i >= 0 && count < 100; i--) {
+    let obj: Record<string, unknown>;
+    try {
+      obj = JSON.parse(lines[i]);
+    } catch {
+      continue;
+    }
+
+    const ts = obj.timestamp as string | undefined;
+
+    // timestamp があり、前回以前のものに到達したら終了
+    if (ts != null && ts <= prevTs) break;
+
+    if (ts != null && ts > maxTs) maxTs = ts;
+    if (matchesFilter(obj)) matched = true;
+    count++;
+  }
+
+  if (maxTs > prevTs) {
+    lastTimestamp.set(filePath, maxTs);
+  }
+
+  if (matched) {
+    console.log(`[${name}]: 作業完了を検知 🔔`);
+    const proc = Bun.spawn([
+      "edge-playback",
+      "-v",
+      "ja-JP-NanamiNeural",
+      "-t",
+      "クロードが作業を完了しました",
+    ], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    await proc.exited;
+  }
+}
+
+// --- main ---
+
+if (!existsSync(WATCH_DIR)) {
+  console.error(`ディレクトリが見つかりません: ${WATCH_DIR}`);
+  process.exit(1);
+}
+
+// 再帰的に監視開始
+console.log(`監視開始: ${WATCH_DIR}`);
+watch(WATCH_DIR, { recursive: true }, (_event, filename) => {
+  if (!filename?.endsWith(".jsonl")) return;
+  const filePath = join(WATCH_DIR, filename);
+
+  // デバウンス: 短時間の連続イベントをまとめる
+  const prev = debounceTimers.get(filePath);
+  if (prev) clearTimeout(prev);
+  debounceTimers.set(
+    filePath,
+    setTimeout(() => {
+      debounceTimers.delete(filePath);
+      processFile(filePath);
+    }, DEBOUNCE_MS),
+  );
+});
+
+process.on("SIGINT", () => {
+  console.log("\n監視終了");
+  process.exit(0);
+});
