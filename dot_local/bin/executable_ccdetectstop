@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+/** 外部からtranscript監視して作業終了検知してくれる君 */
+
 import { watch, existsSync } from "fs";
 import { basename, join } from "path";
 
@@ -8,12 +10,13 @@ const WATCH_DIR = join(process.env.HOME!, ".claude", "projects");
 /** ファイルごとに処理済みの最大 timestamp を記憶 */
 const lastTimestamp = new Map<string, string>();
 
-/** デバウンス用タイマー */
+/** debounce 用タイマー */
 const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const DEBOUNCE_MS = 300;
 
 function matchesFilter(obj: Record<string, unknown>): boolean {
   const data = obj.data as Record<string, unknown> | undefined;
+  // Agent Teamsに関連しないものだけが本来欲しいStopイベント
   return (
     data?.hookEvent === "Stop" &&
     data?.command === "true stop" &&
@@ -96,8 +99,6 @@ async function processFile(filePath: string): Promise<void> {
   }
 }
 
-// --- main ---
-
 if (!existsSync(WATCH_DIR)) {
   console.error(`ディレクトリが見つかりません: ${WATCH_DIR}`);
   process.exit(1);
@@ -109,7 +110,7 @@ watch(WATCH_DIR, { recursive: true }, (_event, filename) => {
   if (!filename?.endsWith(".jsonl")) return;
   const filePath = join(WATCH_DIR, filename);
 
-  // デバウンス: 短時間の連続イベントをまとめる
+  // debouce: 短時間の連続イベントをまとめる
   const prev = debounceTimers.get(filePath);
   if (prev) clearTimeout(prev);
   debounceTimers.set(
