@@ -5,6 +5,8 @@ local config = wezterm.config_builder()
 
 config.window_close_confirmation = 'NeverPrompt'
 
+local launch_action = wezterm.action.SpawnTab 'CurrentPaneDomain'
+
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
   config.default_domain = 'WSL:Ubuntu-24.04'
   config.wsl_domains = {
@@ -15,16 +17,33 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
     }
   }
 
-  config.launch_menu = {
-    {
-      label = 'PowerShell',
-      domain = { DomainName = 'local' },
-      args = { 'powershell.exe' },
+  launch_action = wezterm.action.InputSelector {
+    title = wezterm.nerdfonts.cod_terminal .. '  New Tab',
+    fuzzy = true,
+    fuzzy_description = 'Select: ',
+    choices = {
+      {
+        label = wezterm.nerdfonts.md_powershell .. '  PowerShell',
+        id = 'powershell',
+      },
+      {
+        label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
+        id = 'wsl',
+      },
     },
-    {
-      label = 'WSL: Ubuntu-24.04',
-      domain = { DomainName = 'WSL:Ubuntu-24.04' },
-    },
+    action = wezterm.action_callback(function(window, pane, id, label)
+      if not id then return end
+      if id == 'powershell' then
+        window:perform_action(wezterm.action.SpawnCommandInNewTab {
+          domain = { DomainName = 'local' },
+          args = { 'powershell.exe' },
+        }, pane)
+      elseif id == 'wsl' then
+        window:perform_action(wezterm.action.SpawnCommandInNewTab {
+          domain = { DomainName = 'WSL:Ubuntu-24.04' },
+        }, pane)
+      end
+    end),
   }
 end
 
@@ -45,6 +64,11 @@ else
     config.color_scheme = 'Tokyo Night'
 end
 
+
+-- Command palette / InputSelector styling (Tokyo Night)
+config.command_palette_bg_color = '#1a1b26'
+config.command_palette_fg_color = '#c0caf5'
+config.command_palette_font_size = 13
 
 -- Choose your favourite font, make sure it's installed on your machine
 -- config.font = wezterm.font({ family = 'Berkeley Mono' })
@@ -216,7 +240,7 @@ config.keys = {
     {
         key = 'n',
         mods = 'CTRL|SHIFT',
-        action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS' },
+        action = launch_action,
     },
 }
 
@@ -270,10 +294,7 @@ end)
 -- 「+」ボタンの左クリックでランチャーメニューを表示
 wezterm.on('new-tab-button-click', function(window, pane, button, default_action)
     if button == 'Left' then
-        window:perform_action(
-            wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS' },
-            pane
-        )
+        window:perform_action(launch_action, pane)
         return false
     end
 end)
