@@ -7,4 +7,12 @@ export ANTHROPIC_AUTH_TOKEN="$OPENROUTER_API_KEY"
 export ANTHROPIC_API_KEY=""
 export API_TIMEOUT_MS="3000000"
 
+# Handled by Stop hook
+for arg in "$@"; do
+  if [[ "$arg" == "--team-name" ]]; then
+    export CLAUDE_CODE_IS_TEAMMATE=1
+    break
+  fi
+done
+
 exec claude "$@"

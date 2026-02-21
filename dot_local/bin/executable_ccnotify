@@ -1,0 +1,38 @@
+#!/bin/bash
+
+declare -A watching
+
+WATCH_DIR="$HOME/.claude/projects"
+
+jq_filter='select(
+  (.data.hookEvent == "Stop") and
+  (.data.command == "true stop") and
+  (.teamName? == null)
+)'
+
+start_tail() {
+  local file="$1"
+
+  # すでに監視中なら何もしない
+  [[ -n "${watching["$file"]:-}" ]] && return
+  watching["$file"]=1
+
+  local name
+  name="$(basename "$file" .jsonl)"
+
+  echo "[$name]: 監視開始"
+
+  tail -n0 -f "$file" |
+    jq -c "$jq_filter" |
+    while read -r _; do
+      echo "[$name]: 通知送信"
+      edge-playback -v ja-JP-NanamiNeural -t "クロードが作業を完了しました"
+    done &
+}
+
+# create または modify をトリガーに監視開始
+inotifywait -m -r -e create -e modify --format '%w%f' "$WATCH_DIR" |
+while read -r path; do
+  [[ "$path" == *.jsonl ]] && start_tail "$path"
+done
+

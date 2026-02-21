@@ -3,11 +3,11 @@ PermissionRequest:
     - type: command
       command: edge-playback -v ja-JP-NanamiNeural -t "クロードが許可を求めています"
 
-Stop:
-  - actions:
-    - type: command
-      command: edge-playback -v ja-JP-NanamiNeural -t "クロードがタスクを完了しました"
-
+# Disable untill hook input parameter extended with team info
+#Stop:
+#  - actions:
+#    - type: command
+#      command: edge-playback -v ja-JP-NanamiNeural -t "クロードがタスクを完了しました"
 
 # Auto-format Go files after Write/Edit
 PostToolUse:

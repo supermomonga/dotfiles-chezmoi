@@ -23,11 +23,37 @@
     ],
     "Notification": [
       {
+        "matcher": "permission_prompt",
+        "hooks": [{"type": "command", "command": "cchook -event Notification", "async": true}]
+      },
+      {
         "matcher": "idle_prompt",
+        "hooks": [{"type": "command", "command": "cchook -event Notification", "async": true}]
+      },
+      {
+        "matcher": "elicitation_dialog",
+        "hooks": [{"type": "command", "command": "cchook -event Notification", "async": true}]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "cchook -event Notification",
+            "command": "cchook -event TaskCompleted",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cchook -event SessionEnd",
             "async": true
           }
         ]
@@ -37,6 +63,11 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": "true stop",
+            "async": false
+          },
           {
             "type": "command",
             "command": "cchook -event Stop",
