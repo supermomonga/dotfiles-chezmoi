@@ -171,22 +171,6 @@ config.keys = {
         action = wezterm.action.ActivateCommandPalette,
     },
 
-    -- Sends ESC + b and ESC + f sequence, which is used
-    -- for telling your shell to jump back/forward.
-    {
-        -- When the left arrow is pressed
-        key = 'LeftArrow',
-        -- With the "Option" key modifier held down
-        mods = 'OPT',
-        -- Perform this action, in this case - sending ESC + B
-        -- to the terminal
-        action = wezterm.action.SendString '\x1bb',
-    },
-    {
-        key = 'RightArrow',
-        mods = 'OPT',
-        action = wezterm.action.SendString '\x1bf',
-    },
     -- Ctrl-Shift-pをカスタムイベントに割り当て
     {
         key = 'p',
