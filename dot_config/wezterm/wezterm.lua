@@ -14,8 +14,18 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
       default_cwd = '~',
     }
   }
-  -- We are running on Windows; maybe we emit different
-  -- key assignments here?
+
+  config.launch_menu = {
+    {
+      label = 'PowerShell',
+      domain = { DomainName = 'local' },
+      args = { 'powershell.exe' },
+    },
+    {
+      label = 'WSL: Ubuntu-24.04',
+      domain = { DomainName = 'WSL:Ubuntu-24.04' },
+    },
+  }
 end
 
 
@@ -201,6 +211,13 @@ config.keys = {
         mods = 'CTRL|SHIFT',
         action = wezterm.action.ActivateTabRelative(-1),
     },
+
+    -- Ctrl+Shift+Space でシェル選択ランチャーを開く
+    {
+        key = 'n',
+        mods = 'CTRL|SHIFT',
+        action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS' },
+    },
 }
 
 
@@ -249,6 +266,17 @@ wezterm.on("update-right-status", function(window, pane)
     end
 end)
 
+
+-- 「+」ボタンの左クリックでランチャーメニューを表示
+wezterm.on('new-tab-button-click', function(window, pane, button, default_action)
+    if button == 'Left' then
+        window:perform_action(
+            wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS' },
+            pane
+        )
+        return false
+    end
+end)
 
 -- Returns our config to be evaluated. We must always do this at the bottom of this file
 return config
