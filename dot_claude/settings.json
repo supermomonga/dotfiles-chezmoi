@@ -21,20 +21,6 @@
         ]
       }
     ],
-    "Notification": [
-      {
-        "matcher": "permission_prompt",
-        "hooks": [{"type": "command", "command": "cchook -event Notification", "async": true}]
-      },
-      {
-        "matcher": "idle_prompt",
-        "hooks": [{"type": "command", "command": "cchook -event Notification", "async": true}]
-      },
-      {
-        "matcher": "elicitation_dialog",
-        "hooks": [{"type": "command", "command": "cchook -event Notification", "async": true}]
-      }
-    ],
     "TaskCompleted": [
       {
         "matcher": "",
@@ -42,18 +28,6 @@
           {
             "type": "command",
             "command": "cchook -event TaskCompleted",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cchook -event SessionEnd",
             "async": true
           }
         ]
@@ -70,13 +44,8 @@
           },
           {
             "type": "command",
-            "command": "cchook -event Stop",
-            "async": true
-          },
-          {
-            "type": "command",
             "command": "wezterm-bell 🔔",
-            "async": true
+            "async": false
           }
         ]
       }
