@@ -193,16 +193,28 @@ config.keys = {
         mods = 'CTRL|SHIFT',
         action = wezterm.action.EmitEvent 'custom-ctrl-shift-p',
     },
-    -- Cmd+→ で1つ右のタブに切り替え
+    -- Cmd+→ で1つ右のタブに切り替え (macOS)
     {
         key = 'RightArrow',
         mods = 'CMD',
         action = wezterm.action.ActivateTabRelative(1),
     },
-    -- Cmd+← で1つ左のタブに切り替え
+    -- Cmd+← で1つ左のタブに切り替え (macOS)
     {
         key = 'LeftArrow',
         mods = 'CMD',
+        action = wezterm.action.ActivateTabRelative(-1),
+    },
+    -- Ctrl+Shift+→ で1つ右のタブに切り替え (macOS以外)
+    {
+        key = 'RightArrow',
+        mods = 'CTRL|SHIFT',
+        action = wezterm.action.ActivateTabRelative(1),
+    },
+    -- Ctrl+Shift+← で1つ左のタブに切り替え (macOS以外)
+    {
+        key = 'LeftArrow',
+        mods = 'CTRL|SHIFT',
         action = wezterm.action.ActivateTabRelative(-1),
     },
 }
