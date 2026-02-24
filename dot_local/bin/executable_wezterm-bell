@@ -1,23 +1,30 @@
-#!/bin/bash
-# WezTerm の BELL ユーザー変数に絵文字を送信してタブタイトルに通知を表示する
-# Usage: wezterm-bell [emoji]
-#   emoji: 表示する文字 (省略時: 🔔)
-#
-# WezTerm Lua 側で累積管理されるため、同じ文字を複数回送っても重複しない。
-# 異なる文字を送ると並んで表示される (例: 🔔💭)
-# クリアは WezTerm がフォーカス/タブ切り替えを検知した際に自動で行われる。
+#!/usr/bin/env bun
+// WezTerm の BELL ユーザー変数に絵文字を送信してタブタイトルに通知を表示する
+// Usage: wezterm-bell [emoji]
+//   emoji: 表示する文字 (省略時: 🔔)
+//
+// WezTerm Lua 側で累積管理されるため、同じ文字を複数回送っても重複しない。
+// 異なる文字を送ると並んで表示される (例: 🔔💭)
+// クリアは WezTerm がフォーカス/タブ切り替えを検知した際に自動で行われる。
 
-EMOJI="${1:-🔔}"
+const emoji = Bun.argv[2] ?? "🔔";
+const encoded = btoa(String.fromCodePoint(...new TextEncoder().encode(emoji)));
+const seq = `\x1b]1337;SetUserVar=BELL=${encoded}\x07`;
 
-# tty を取得（tmux 内の場合はクライアントの tty を使って tmux をバイパスする）
-if [ -n "${TMUX:-}" ]; then
-    tty="$(tmux display-message -p '#{client_tty}')"
-else
-    tty="/dev/tty"
-fi
+// tty を取得（tmux 内の場合はクライアントの tty を使って tmux をバイパスする）
+async function getTtyPath(): Promise<string | null> {
+  if (Bun.env.TMUX) {
+    const tty = await $`tmux display-message -p '#{client_tty}'`.text();
+    return tty.trim() || null;
+  }
+  return process.platform === "win32" ? "CON" : "/dev/tty";
+}
 
-# tty が取れない場合は WezTerm 外とみなして何もしない
-[ -z "$tty" ] && exit 0
+const tty = await getTtyPath();
+if (!tty) process.exit(0);
 
-encoded=$(printf '%s' "$EMOJI" | base64 | tr -d '\n')
-printf '\033]1337;SetUserVar=%s=%s\007' "BELL" "$encoded" > "$tty"
+try {
+  await Bun.write(Bun.file(tty), seq);
+} catch {
+  // WezTerm 外の環境では何もしない
+}
