@@ -1,0 +1,12 @@
+@echo off
+set ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic
+set ANTHROPIC_AUTH_TOKEN=%GLM_API_KEY%
+set API_TIMEOUT_MS=3000000
+
+set ANTHROPIC_DEFAULT_OPUS_MODEL=GLM-5
+set ANTHROPIC_DEFAULT_SONNET_MODEL=GLM-5
+set ANTHROPIC_DEFAULT_HAIKU_MODEL=GLM-4.7
+
+(for %%a in (%*) do if "%%a"=="--team-name" set CLAUDE_CODE_IS_TEAMMATE=1) 2>nul
+
+claude %*
