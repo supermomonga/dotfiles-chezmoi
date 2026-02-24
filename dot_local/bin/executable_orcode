@@ -14,5 +14,6 @@ const proc = Bun.spawn(["claude", ...Bun.argv.slice(2)], {
   stdin: "inherit",
   stdout: "inherit",
   stderr: "inherit",
+  env: process.env,
 });
 process.exitCode = await proc.exited;
