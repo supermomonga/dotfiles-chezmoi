@@ -29,7 +29,10 @@ starship = "latest"
 "github:prskr/git-age" = "latest"
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
-"go:github.com/syou6162/cchook" = "latest"
+# temporary disabled.
+# use `go install github.com/syou6162/cchook@latest` instead.
+# ref: https://github.com/jdx/mise/discussions/6737
+#"go:github.com/syou6162/cchook" = "latest"
 "go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
 "go:github.com/x-motemen/ghq" = "latest"
 "npm:@openai/codex" = "latest"

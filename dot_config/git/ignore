@@ -15,3 +15,5 @@
 
 tmuxist.*
 .tmuxist.*
+
+agent-orchestrator.yaml
