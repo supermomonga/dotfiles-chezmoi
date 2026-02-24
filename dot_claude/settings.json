@@ -40,12 +40,12 @@
           {
             "type": "command",
             "command": "true stop",
-            "async": false
+            "async": true
           },
           {
             "type": "command",
             "command": "wezterm-bell 🔔",
-            "async": false
+            "async": true
           }
         ]
       }
@@ -59,7 +59,9 @@
   "enabledPlugins": {
     "dig@kuu-marketplace": true,
     "context7@claude-plugins-official": true,
-    "team-builder@claude-code-customes": true
+    "team-builder@claude-code-customes": true,
+    "x-post@supermomonga-agent-plugins": true,
+    "youtube-transcribe@supermomonga-agent-plugins": true
   },
   "language": "Japanese",
   "skipDangerousModePermissionPrompt": true
