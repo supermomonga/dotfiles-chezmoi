@@ -1,0 +1,22 @@
+#!/usr/bin/env bun
+import { $ } from "bun";
+// tmux pane-focus-in hook から呼ばれ、
+// アクティブ pane のフォアグラウンドプロセス名を WEZTERM_PROG として通知する
+
+const cmd = (await $`tmux display-message -p '#{pane_current_command}'`.text()).trim();
+const tty = (await $`tmux display-message -p '#{client_tty}'`.text()).trim();
+
+if (!tty) process.exit(0);
+
+// シェル自体ならアイドル状態とみなし空文字にする (CWDフォールバックが効く)
+const shells = new Set(["bash", "zsh", "fish", "sh", "dash", "ksh"]);
+const prog = shells.has(cmd) ? "" : cmd;
+
+const encoded = Buffer.from(prog).toString("base64");
+const seq = `\x1b]1337;SetUserVar=WEZTERM_PROG=${encoded}\x07`;
+
+try {
+  await Bun.write(Bun.file(tty), seq);
+} catch {
+  // WezTerm 外の環境では何もしない
+}
