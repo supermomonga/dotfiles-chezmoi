@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { $ } from "bun";
 // WezTerm の BELL ユーザー変数に絵文字を送信してタブタイトルに通知を表示する
 // Usage: wezterm-bell [emoji]
 //   emoji: 表示する文字 (省略時: 🔔)
