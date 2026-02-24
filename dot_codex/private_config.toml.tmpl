@@ -39,7 +39,7 @@ env_http_headers = { "CONTEXT7_API_KEY" = "CONTEXT7_API_KEY" }
 [projects]
 {{ range $repos -}}
 {{   if hasPrefix "github.com/supermomonga/" . }}
-[projects."{{ joinPath $ghqRoot . }}"]
+[projects.'{{ joinPath $ghqRoot . }}']
 trust_level = "trusted"
 {{ end -}}
 {{ end -}}
