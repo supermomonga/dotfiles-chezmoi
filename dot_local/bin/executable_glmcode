@@ -1,22 +1,22 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bun
+// Z.AI API Configuration
+process.env.ANTHROPIC_BASE_URL = "https://api.z.ai/api/anthropic";
+process.env.ANTHROPIC_AUTH_TOKEN = process.env.GLM_API_KEY;
+process.env.API_TIMEOUT_MS = "3000000";
 
-# Z.AI API Configuration
-export ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic"
-export ANTHROPIC_AUTH_TOKEN="$GLM_API_KEY"
-export API_TIMEOUT_MS="3000000"
+// Model mappings (GLM models)
+process.env.ANTHROPIC_DEFAULT_OPUS_MODEL = "GLM-5";
+process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = "GLM-5";
+process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = "GLM-4.7";
 
-# Model mappings (GLM models)
-export ANTHROPIC_DEFAULT_OPUS_MODEL="GLM-5"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="GLM-5"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="GLM-4.7"
+// Handled by Stop hook
+if (Bun.argv.includes("--team-name")) {
+  process.env.CLAUDE_CODE_IS_TEAMMATE = "1";
+}
 
-# Handled by Stop hook
-for arg in "$@"; do
-  if [[ "$arg" == "--team-name" ]]; then
-    export CLAUDE_CODE_IS_TEAMMATE=1
-    break
-  fi
-done
-
-exec claude "$@"
+const proc = Bun.spawn(["claude", ...Bun.argv.slice(2)], {
+  stdin: "inherit",
+  stdout: "inherit",
+  stderr: "inherit",
+});
+process.exitCode = await proc.exited;

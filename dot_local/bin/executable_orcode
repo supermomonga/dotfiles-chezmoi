@@ -1,18 +1,18 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bun
+// OpenRouter API Configuration
+process.env.ANTHROPIC_BASE_URL = "https://openrouter.ai/api";
+process.env.ANTHROPIC_AUTH_TOKEN = process.env.OPENROUTER_API_KEY;
+process.env.ANTHROPIC_API_KEY = "";
+process.env.API_TIMEOUT_MS = "3000000";
 
-# OpenRouter API Configuration
-export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
-export ANTHROPIC_AUTH_TOKEN="$OPENROUTER_API_KEY"
-export ANTHROPIC_API_KEY=""
-export API_TIMEOUT_MS="3000000"
+// Handled by Stop hook
+if (Bun.argv.includes("--team-name")) {
+  process.env.CLAUDE_CODE_IS_TEAMMATE = "1";
+}
 
-# Handled by Stop hook
-for arg in "$@"; do
-  if [[ "$arg" == "--team-name" ]]; then
-    export CLAUDE_CODE_IS_TEAMMATE=1
-    break
-  fi
-done
-
-exec claude "$@"
+const proc = Bun.spawn(["claude", ...Bun.argv.slice(2)], {
+  stdin: "inherit",
+  stdout: "inherit",
+  stderr: "inherit",
+});
+process.exitCode = await proc.exited;
