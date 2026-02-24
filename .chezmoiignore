@@ -6,6 +6,7 @@ README.md
 {{ if ne .chezmoi.os "windows" }}
 Documents/**
 AppData/**
+**/*.cmd
 {{ end }}
 
 # ignore on Windows
