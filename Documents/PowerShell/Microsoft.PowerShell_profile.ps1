@@ -35,3 +35,9 @@ Set-PSReadLineKeyHandler -Key Ctrl+u -Function BackwardKillLine
 Set-PSReadLineKeyHandler -Key Ctrl+f -Function ForwardChar
 Set-PSReadLineKeyHandler -Key Ctrl+b -Function BackwardChar
 
+# git-wt
+Invoke-Expression (git wt --init powershell | Out-String)
+
+# Starship
+Invoke-Expression (&starship init powershell)
+starship preset pure-preset -o $(Resolve-Path "~/.config/starship/presets/pure.toml")

@@ -154,5 +154,6 @@ fi
 eval "$(git wt --init bash)"
 
 eval "$(starship init bash)"
+starship preset pure-preset -o ~/.config/starship/presets/pure.toml
 
 export PATH="$HOME/.local/bin:$PATH"
