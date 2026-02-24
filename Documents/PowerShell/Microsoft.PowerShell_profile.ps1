@@ -13,6 +13,12 @@ if ($resolved) {
     $Env:Path = "$($resolved.Path);$Env:Path"
 }
 
+# git-bash for Claude Code
+$resolved = Resolve-Path "~/scoop/apps/git/current/bin/bash.exe" -ErrorAction SilentlyContinue
+if ($resolved) {
+    $Env:CLAUDE_CODE_GIT_BASH_PATH = "$($resolved.Path)"
+}
+
 # Incremental search
 Set-PSReadLineKeyHandler -Key Ctrl+p -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key Ctrl+n -Function HistorySearchForward
