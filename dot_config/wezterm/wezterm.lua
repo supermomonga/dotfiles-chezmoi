@@ -36,7 +36,7 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
       if id == 'powershell' then
         window:perform_action(wezterm.action.SpawnCommandInNewTab {
           domain = { DomainName = 'local' },
-          args = { 'powershell.exe' },
+          args = { 'pwsh.exe' },
         }, pane)
       elseif id == 'wsl' then
         window:perform_action(wezterm.action.SpawnCommandInNewTab {
