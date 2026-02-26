@@ -1,4 +1,4 @@
-{{- if lookPath "op" -}}
+{{- if and (lookPath "op") (eq (output "sh" "-c" "op user get --me --format json >/dev/null 2>&1 && echo -n true || echo -n false") "true") -}}
 debug: warn
 oauth2-tokenurl: https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token
 oauth2-clientid: {{ onepasswordRead "op://chezmoi/Contabo/API/client_id" | quote }}
@@ -7,5 +7,5 @@ oauth2-user: {{ onepasswordRead "op://chezmoi/Contabo/username" | quote }}
 oauth2-password: {{ onepasswordRead "op://chezmoi/Contabo/password" | quote }}
 api: https://api.contabo.com
 {{- else -}}
-# op is not available — credentials not generated
+# op is not available/logged in — credentials not generated
 {{- end }}
