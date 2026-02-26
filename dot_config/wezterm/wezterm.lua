@@ -128,11 +128,15 @@ config.window_frame = {
 }
 
 
+local day_of_week_ja = { '日', '月', '火', '水', '木', '金', '土' }
 local function segments_for_right_status(window)
+    local now = os.date('*t')
+    local dow = day_of_week_ja[now.wday]
+    local datetime = string.format('%02d/%02d %s %02d:%02d:%02d',
+        now.month, now.day, dow, now.hour, now.min, now.sec)
     return {
         window:active_workspace(),
-        wezterm.strftime('%a %b %-d %H:%M'),
-        wezterm.hostname(),
+        datetime,
     }
 end
 
