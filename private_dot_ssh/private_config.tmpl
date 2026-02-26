@@ -4,7 +4,13 @@
 # --- Vultr ---
 {{- if $opReady }}
 {{- $vultrApiKey := onepasswordRead "op://chezmoi/devenv/VULTR_API_KEY" -}}
-{{- $vultrData := output "curl" "-sf" "https://api.vultr.com/v2/instances" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $vultrApiKey) | fromJson -}}
+{{- $vultrRaw := "" -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $vultrRaw = output "pwsh" "-NoProfile" "-Command" (printf "(Invoke-WebRequest -UseBasicParsing -Uri 'https://api.vultr.com/v2/instances' -Headers @{Accept='application/json';Authorization='Bearer %s'}).Content" $vultrApiKey) -}}
+{{- else -}}
+{{-   $vultrRaw = output "curl" "-sf" "https://api.vultr.com/v2/instances" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $vultrApiKey) -}}
+{{- end -}}
+{{- $vultrData := $vultrRaw | fromJson -}}
 {{- range $vultrData.instances }}
 
 Host {{ .label | kebabcase }}
@@ -39,7 +45,13 @@ Host {{ .displayName | kebabcase }}
 # --- GreenCloud ---
 {{- if $opReady }}
 {{- $gcApiKey := onepasswordRead "op://chezmoi/devenv/GREENCLOUD_API_KEY" -}}
-{{- $gcData := output "curl" "-sf" "https://cp.green.cloud/api/server" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $gcApiKey) | fromJson -}}
+{{- $gcRaw := "" -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $gcRaw = output "pwsh" "-NoProfile" "-Command" (printf "(Invoke-WebRequest -UseBasicParsing -Uri 'https://cp.green.cloud/api/server' -Headers @{Accept='application/json';Authorization='Bearer %s'}).Content" $gcApiKey) -}}
+{{- else -}}
+{{-   $gcRaw = output "curl" "-sf" "https://cp.green.cloud/api/server" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $gcApiKey) -}}
+{{- end -}}
+{{- $gcData := $gcRaw | fromJson -}}
 {{- range $gcData.data }}
 
 Host {{ .name | kebabcase }}
