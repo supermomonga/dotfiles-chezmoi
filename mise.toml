@@ -1,5 +1,4 @@
 
 [tools]
-vultr-cli = "latest"
 jq = "latest"
 "github:contabo/cntb" = "latest"
