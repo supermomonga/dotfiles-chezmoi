@@ -7,13 +7,7 @@
 ### 初回インストール（ワンライナー）
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply supermomonga/dotfiles-chezmoi
-```
-
-curl がない場合:
-
-```bash
-sh -c "$(wget -qO- get.chezmoi.io)" -- init --apply supermomonga/dotfiles-chezmoi
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply supermomonga/dotfiles-chezmoi
 ```
 
 ### 前提条件
