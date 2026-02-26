@@ -36,7 +36,7 @@ Host {{ .displayName | kebabcase }}
 
 # --- GreenCloud ---
 {{- if lookPath "op" }}
-{{- $gcApiKey := onepasswordRead "op://Personal/GreenCloud VPS/api_key" -}}
+{{- $gcApiKey := onepasswordRead "op://chezmoi/devenv/GREENCLOUD_API_KEY" -}}
 {{- $gcData := output "curl" "-sf" "https://cp.green.cloud/api/server" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $gcApiKey) | fromJson -}}
 {{- range $gcData.data }}
 

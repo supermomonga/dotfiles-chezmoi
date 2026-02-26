@@ -3,18 +3,35 @@
 
 ARCH=$(dpkg --print-architecture)
 
-# Add 1Password CLI repository (skip if already configured)
+# Add 1Password CLI repository
+# TODO: Environments機能がBetaからStableになったらbetaチャンネルをstableに戻す
+# ref: https://developer.1password.com/docs/cli/reference/#beta-builds
+# ref: https://app-updates.agilebits.com/product_history/CLI2
+# ref: https://www.1password.community/discussions/developers/1password-cli-bug-report-service-account-cannot-read-environments/167547
+OP_CHANNEL=beta
+
 ensure_file() {
   local file=$1; shift
   [[ -f $file ]] && return
   sudo mkdir -p "$(dirname "$file")"
   "$@" | sudo tee "$file" >/dev/null
 }
+
+ensure_file_content() {
+  local file=$1; shift
+  local content
+  content=$("$@")
+  if [[ ! -f "$file" ]] || [[ "$(cat "$file")" != "$content" ]]; then
+    sudo mkdir -p "$(dirname "$file")"
+    echo "$content" | sudo tee "$file" >/dev/null
+  fi
+}
+
 OP_KEY=$(curl -sS https://downloads.1password.com/linux/keys/1password.asc)
 ensure_file /usr/share/keyrings/1password-archive-keyring.gpg \
   gpg --dearmor <<< "$OP_KEY"
-ensure_file /etc/apt/sources.list.d/1password.list \
-  echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/${ARCH} stable main"
+ensure_file_content /etc/apt/sources.list.d/1password.list \
+  echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/${ARCH} ${OP_CHANNEL} main"
 ensure_file /etc/debsig/policies/AC2D62742012EA22/1password.pol \
   curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol
 ensure_file /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg \
