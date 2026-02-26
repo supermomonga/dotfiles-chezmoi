@@ -47,12 +47,17 @@ ensure_file /etc/debsig/policies/AC2D62742012EA22/1password.pol \
 ensure_file /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg \
   gpg --dearmor <<< "$OP_KEY"
 
-
+# Add GitHub CLI repository
+ensure_file /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+  curl -sS https://cli.github.com/packages/githubcli-archive-keyring.gpg
+ensure_file_content /etc/apt/sources.list.d/github-cli.list \
+  echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
 
 # Install missing packages
 PACKAGES=(
   htop
   1password-cli
+  gh
 )
 MISSING=()
 for pkg in "${PACKAGES[@]}"; do
@@ -80,6 +85,7 @@ ensure_cmd() {
 }
 
 ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
+ensure_cmd gh 'brew install gh'
 
 
 {{ end -}}
