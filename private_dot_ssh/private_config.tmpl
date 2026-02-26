@@ -50,3 +50,30 @@ Host {{ .name | kebabcase }}
 {{- else }}
 # op is not available — no GreenCloud hosts generated
 {{- end }}
+
+# --- devenv (1Password) ---
+{{- if lookPath "op" }}
+{{- $devenvItems := output "op" "item" "list" "--categories" "server" "--vault" "chezmoi" "--format" "json" | fromJson }}
+{{- range $devenvItems }}
+{{-   if hasPrefix "devenv:" .title }}
+{{-     $name := trimPrefix "devenv:" .title }}
+{{-     $ref := printf "op://chezmoi/%s" .id }}
+{{-     $hostname := onepasswordRead (printf "%s/URL" $ref) }}
+{{-     $username := onepasswordRead (printf "%s/username" $ref) }}
+{{-     $port := "22" }}
+{{-     $item := output "op" "item" "get" .id "--vault" "chezmoi" "--format" "json" | fromJson }}
+{{-     range $item.fields }}
+{{-       if eq .id "port" }}{{ $port = .value }}{{ end }}
+{{-     end }}
+
+Host {{ $name }}
+    HostName {{ $hostname }}
+    Port {{ $port }}
+    User {{ $username }}
+    ForwardAgent yes
+    TCPKeepAlive yes
+{{-   end }}
+{{- end }}
+{{- else }}
+# op is not available — no devenv hosts generated
+{{- end }}
