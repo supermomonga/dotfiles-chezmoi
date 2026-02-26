@@ -10,6 +10,16 @@ ARCH=$(dpkg --print-architecture)
 # ref: https://www.1password.community/discussions/developers/1password-cli-bug-report-service-account-cannot-read-environments/167547
 OP_CHANNEL=beta
 
+ensure_cmd() {
+  local cmd=$1; shift
+  if [[ $cmd == /* || $cmd == ~/* ]]; then
+    eval [[ -f "$cmd" ]] && return
+  else
+    command -v "$cmd" &>/dev/null && return
+  fi
+  eval "$@"
+}
+
 ensure_file() {
   local file=$1; shift
   [[ -f $file ]] && return
@@ -53,10 +63,23 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
   sudo apt install -y "${MISSING[@]}"
 fi
 
+ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
+
 
 {{ else if eq .chezmoi.os "darwin" -}}
 #!/bin/sh
 #brew install ripgrep
+
+ensure_cmd() {
+  local cmd=$1; shift
+  case "$cmd" in
+    /*|~/*) eval [ -f "$cmd" ] && return ;;
+    *) command -v "$cmd" >/dev/null 2>&1 && return ;;
+  esac
+  eval "$@"
+}
+
+ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
 
 
 {{ end -}}
