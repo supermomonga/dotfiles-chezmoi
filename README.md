@@ -10,6 +10,13 @@
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply supermomonga/dotfiles-chezmoi
 ```
 
+`vim ~/.config/mise/config.toml`
+
+```bash
+[env]
+OP_SERVICE_ACCOUNT_TOKEN = "..."
+```
+
 ### 前提条件
 
 - curl または wget
