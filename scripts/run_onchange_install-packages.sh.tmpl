@@ -71,6 +71,7 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
 fi
 
 ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
+ensure_cmd claude 'curl -fsSL https://claude.ai/install.sh | bash'
 
 
 {{ else if eq .chezmoi.os "darwin" -}}
@@ -88,6 +89,7 @@ ensure_cmd() {
 
 ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
 ensure_cmd gh 'brew install gh'
+ensure_cmd claude 'brew install --cask claude-code'
 
 
 {{ end -}}
