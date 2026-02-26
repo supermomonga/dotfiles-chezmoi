@@ -202,6 +202,9 @@ config.keys = {
     { key = '-', mods = 'CTRL', action = wezterm.action.SendKey({ mods = 'CTRL', key = '-' }) },
     { key = '=', mods = 'CTRL', action = wezterm.action.SendKey({ mods = 'CTRL', key = '=' }) },
 
+    -- Alt+Enter をアプリケーションにパススルー（フルスクリーントグルを無効化）
+    { key = 'Enter', mods = 'ALT', action = wezterm.action.SendKey({ mods = 'ALT', key = 'Enter' }) },
+
     -- Cmd+Shift+Pでコマンドパレットを開く
     {
         key = 'P',
