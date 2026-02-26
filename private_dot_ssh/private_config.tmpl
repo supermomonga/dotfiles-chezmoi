@@ -35,6 +35,7 @@ Host {{ .displayName | kebabcase }}
 {{- end }}
 
 # --- GreenCloud ---
+{{- if lookPath "op" }}
 {{- $gcApiKey := output "op" "read" "op://Personal/GreenCloud VPS/api_key" "--no-newline" -}}
 {{- $gcData := output "curl" "-sf" "https://cp.green.cloud/api/server" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $gcApiKey) | fromJson -}}
 {{- range $gcData.data }}
@@ -45,4 +46,7 @@ Host {{ .name | kebabcase }}
     User main
     ForwardAgent yes
     TCPKeepAlive yes
+{{- end }}
+{{- else }}
+# op is not available — no GreenCloud hosts generated
 {{- end }}

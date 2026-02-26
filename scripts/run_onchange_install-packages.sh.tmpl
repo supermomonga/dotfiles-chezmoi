@@ -1,0 +1,45 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+
+ARCH=$(dpkg --print-architecture)
+
+# Add 1Password CLI repository (skip if already configured)
+ensure_file() {
+  local file=$1; shift
+  [[ -f $file ]] && return
+  sudo mkdir -p "$(dirname "$file")"
+  "$@" | sudo tee "$file" >/dev/null
+}
+OP_KEY=$(curl -sS https://downloads.1password.com/linux/keys/1password.asc)
+ensure_file /usr/share/keyrings/1password-archive-keyring.gpg \
+  gpg --dearmor <<< "$OP_KEY"
+ensure_file /etc/apt/sources.list.d/1password.list \
+  echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/${ARCH} stable main"
+ensure_file /etc/debsig/policies/AC2D62742012EA22/1password.pol \
+  curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol
+ensure_file /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg \
+  gpg --dearmor <<< "$OP_KEY"
+
+
+
+# Install missing packages
+PACKAGES=(
+  htop
+  1password-cli
+)
+MISSING=()
+for pkg in "${PACKAGES[@]}"; do
+  dpkg -s "$pkg" &>/dev/null || MISSING+=("$pkg")
+done
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+  sudo apt update
+  sudo apt install -y "${MISSING[@]}"
+fi
+
+
+{{ else if eq .chezmoi.os "darwin" -}}
+#!/bin/sh
+#brew install ripgrep
+
+
+{{ end -}}
