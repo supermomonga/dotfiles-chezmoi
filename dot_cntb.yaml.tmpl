@@ -1,10 +1,10 @@
 {{- if lookPath "op" -}}
 debug: warn
 oauth2-tokenurl: https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token
-oauth2-clientid: {{ output "op" "read" "op://Personal/Contabo/API/client_id" "--no-newline" | quote }}
-oauth2-client-secret: {{ output "op" "read" "op://Personal/Contabo/API/client_secret" "--no-newline" | quote }}
-oauth2-user: {{ output "op" "read" "op://Personal/Contabo/username" "--no-newline" | quote }}
-oauth2-password: {{ output "op" "read" "op://Personal/Contabo/password" "--no-newline" | quote }}
+oauth2-clientid: {{ onepasswordRead "op://Personal/Contabo/API/client_id" | quote }}
+oauth2-client-secret: {{ onepasswordRead "op://Personal/Contabo/API/client_secret" | quote }}
+oauth2-user: {{ onepasswordRead "op://Personal/Contabo/username" | quote }}
+oauth2-password: {{ onepasswordRead "op://Personal/Contabo/password" | quote }}
 api: https://api.contabo.com
 {{- else -}}
 # op is not available — credentials not generated

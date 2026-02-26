@@ -18,7 +18,7 @@ Host {{ .label | kebabcase }}
 {{- end }}
 
 # --- Contabo ---
-{{- if lookPath "cntb" }}
+{{- if and (lookPath "cntb") (lookPath "op") }}
 {{- $cntbData := output "cntb" "get" "instances" "--output" "json" | fromJson }}
 {{- range $cntbData }}
 
@@ -31,12 +31,12 @@ Host {{ .displayName | kebabcase }}
     PasswordAuthentication {{ if eq .defaultUser "root" }}yes{{ else }}no{{ end }}
 {{- end }}
 {{- else }}
-# cntb is not available — no Contabo hosts generated
+# cntb or op is not available — no Contabo hosts generated
 {{- end }}
 
 # --- GreenCloud ---
 {{- if lookPath "op" }}
-{{- $gcApiKey := output "op" "read" "op://Personal/GreenCloud VPS/api_key" "--no-newline" -}}
+{{- $gcApiKey := onepasswordRead "op://Personal/GreenCloud VPS/api_key" -}}
 {{- $gcData := output "curl" "-sf" "https://cp.green.cloud/api/server" "-H" "Accept: application/json" "-H" (printf "Authorization: Bearer %s" $gcApiKey) | fromJson -}}
 {{- range $gcData.data }}
 
