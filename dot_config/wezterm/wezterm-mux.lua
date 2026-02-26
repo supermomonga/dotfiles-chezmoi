@@ -93,6 +93,13 @@ function M.apply_to_config(config)
         -- Zoom pane toggle  (tmux: prefix + z)
         { key = 'z', mods = 'LEADER', action = act.TogglePaneZoomState },
 
+        -- Next/previous tab  (tmux: prefix + n / p)
+        { key = 'n', mods = 'LEADER', action = act.ActivateTabRelative(1) },
+        { key = 'p', mods = 'LEADER', action = act.ActivateTabRelative(-1) },
+
+        -- Copy mode  (tmux: prefix + [)
+        { key = '[', mods = 'LEADER', action = act.ActivateCopyMode },
+
         -- Yazi file manager  (tmux: prefix + y → display-popup)
         -- Opens yazi in a bottom split pane at 80% height
         {

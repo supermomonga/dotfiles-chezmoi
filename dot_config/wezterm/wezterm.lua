@@ -134,9 +134,17 @@ local function segments_for_right_status(window)
     local dow = day_of_week_ja[now.wday]
     local datetime = string.format('%02d/%02d %s %02d:%02d:%02d',
         now.month, now.day, dow, now.hour, now.min, now.sec)
+
+    local key_table = window:active_key_table()
+    local mode = 'NORMAL'
+    if key_table == 'copy_mode' or key_table == 'search_mode' then
+        mode = 'VISUAL'
+    end
+
     return {
         window:active_workspace(),
         datetime,
+        mode,
     }
 end
 
@@ -173,20 +181,31 @@ wezterm.on('update-status', function(window, _)
         #segments -- only gives us as many colours as we have segments.
     )
 
+    -- Mode segment colors
+    local key_table = window:active_key_table()
+    local is_visual = key_table == 'copy_mode' or key_table == 'search_mode'
+    local mode_bg = is_visual and '#e0af68' or gradient[#segments]
+    local mode_fg = is_visual and '#1a1b26' or fg
+
     -- We'll build up the elements to send to wezterm.format in this table.
     local elements = {}
 
     for i, seg in ipairs(segments) do
         local is_first = i == 1
+        local is_last = i == #segments
+
+        -- Determine segment colors
+        local seg_bg = is_last and mode_bg or gradient[i]
+        local seg_fg = is_last and mode_fg or fg
 
         if is_first then
             table.insert(elements, { Background = { Color = 'none' } })
         end
-        table.insert(elements, { Foreground = { Color = gradient[i] } })
+        table.insert(elements, { Foreground = { Color = seg_bg } })
         table.insert(elements, { Text = SOLID_LEFT_ARROW })
 
-        table.insert(elements, { Foreground = { Color = fg } })
-        table.insert(elements, { Background = { Color = gradient[i] } })
+        table.insert(elements, { Foreground = { Color = seg_fg } })
+        table.insert(elements, { Background = { Color = seg_bg } })
         table.insert(elements, { Text = ' ' .. seg .. ' ' })
     end
 
