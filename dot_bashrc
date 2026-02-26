@@ -133,7 +133,6 @@ setup_op_ssh_agent() {
 }
 
 if is_wsl; then
-  alias op='op.exe'
   setup_op_ssh_agent
 fi
 
