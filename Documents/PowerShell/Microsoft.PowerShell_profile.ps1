@@ -98,3 +98,5 @@ function cod { cage codex --yolo @args }
 Invoke-Expression (&starship init powershell)
 starship preset pure-preset -o $(Resolve-Path "~/.config/starship/presets/pure.toml")
 
+
+

@@ -8,6 +8,7 @@ config.window_close_confirmation = 'NeverPrompt'
 local launch_action = wezterm.action.SpawnTab 'CurrentPaneDomain'
 
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
+  config.default_prog = { 'pwsh.exe' }
   config.default_domain = 'WSL:Ubuntu-24.04'
   config.wsl_domains = {
     {
@@ -36,7 +37,6 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
       if id == 'powershell' then
         window:perform_action(wezterm.action.SpawnCommandInNewTab {
           domain = { DomainName = 'local' },
-          args = { 'pwsh.exe' },
         }, pane)
       elseif id == 'wsl' then
         window:perform_action(wezterm.action.SpawnCommandInNewTab {
@@ -243,6 +243,10 @@ config.keys = {
         action = launch_action,
     },
 }
+
+-- mux (tmux replacement): leader key, pane/tab splits & navigation
+local mux = require 'wezterm-mux'
+mux.apply_to_config(config)
 
 
 config.set_environment_variables = {
