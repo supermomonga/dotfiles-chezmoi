@@ -4,8 +4,9 @@
 
 import { watch, existsSync } from "fs";
 import { basename, join } from "path";
+import { homedir } from "os";
 
-const WATCH_DIR = join(process.env.HOME!, ".claude", "projects");
+const WATCH_DIR = join(homedir(), ".claude", "projects");
 
 /** ファイルごとに処理済みの最大 timestamp を記憶 */
 const lastTimestamp = new Map<string, string>();
