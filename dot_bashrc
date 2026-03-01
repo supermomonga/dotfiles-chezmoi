@@ -134,6 +134,7 @@ setup_op_ssh_agent() {
 
 if is_wsl; then
   setup_op_ssh_agent
+  export BROWSER=wslview
 fi
 
 # tmux セッション名を WezTerm user var として通知
