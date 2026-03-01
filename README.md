@@ -17,6 +17,20 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply supermo
 OP_SERVICE_ACCOUNT_TOKEN = "..."
 ```
 
+その後、以下のコマンド実行を推奨。
+
+```sh
+# .npmrc 生成のために `read:packages` スコープが必要
+gh auth login -s 'read:packages'
+
+# Coding Agent
+claude auth login
+codex login
+```
+
+終わったら再度 `chezmoi init --apply` しておくと良い。
+
+
 ### 前提条件
 
 - curl または wget
