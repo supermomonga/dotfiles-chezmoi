@@ -20,6 +20,8 @@ starship = "latest"
 tree-sitter = "latest"
 uv = "latest"
 yazi = "latest"
+jq = "latest"
+yq = "latest"
 
 # Packages
 "cargo:pik" = "latest"
