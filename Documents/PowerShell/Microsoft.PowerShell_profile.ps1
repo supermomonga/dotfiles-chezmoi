@@ -87,10 +87,8 @@ function gs { git status @args }
 function gd { git diff @args }
 Set-Alias -Name che -Value chezmoi
 
-function cc { cage claude --allow-dangerously-skip-permissions @args }
-function ccd { cage claude --dangerously-skip-permissions @args }
-function glm { cage glmcode --allow-dangerously-skip-permissions @args }
-function glmd { cage glmcode --dangerously-skip-permissions @args }
+function ccd { cage claude --allow-dangerously-skip-permissions @args }
+function glmd { cage glmcode --allow-dangerously-skip-permissions @args }
 function co { cage codex @args }
 function cod { cage codex --yolo @args }
 
