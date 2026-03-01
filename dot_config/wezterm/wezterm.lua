@@ -5,6 +5,21 @@ local config = wezterm.config_builder()
 
 config.window_close_confirmation = 'NeverPrompt'
 
+-- SSH domains: auto-detect from ~/.ssh/config
+-- Non-multiplexed (SSH:) only — no wezterm needed on remote
+-- assume_shell = 'Posix' enables cwd tracking for pane splits
+config.ssh_backend = 'Ssh2'
+do
+  local ssh_doms = {}
+  for _, dom in ipairs(wezterm.default_ssh_domains()) do
+    if dom.name:match('^SSH:') then
+      dom.assume_shell = 'Posix'
+      table.insert(ssh_doms, dom)
+    end
+  end
+  config.ssh_domains = ssh_doms
+end
+
 local launch_action = wezterm.action.SpawnTab 'CurrentPaneDomain'
 
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
@@ -18,31 +33,35 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
     }
   }
 
+  -- Build launcher choices: WSL, PowerShell, + SSH hosts from ssh_config
+  local choices = {
+    {
+      label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
+      id = 'WSL:Ubuntu-24.04',
+    },
+    {
+      label = wezterm.nerdfonts.md_powershell .. '  PowerShell',
+      id = 'local',
+    },
+  }
+  for _, dom in ipairs(config.ssh_domains) do
+    local host = dom.name:gsub('^SSH:', '')
+    table.insert(choices, {
+      label = wezterm.nerdfonts.cod_remote .. '  ' .. host,
+      id = dom.name,
+    })
+  end
+
   launch_action = wezterm.action.InputSelector {
     title = wezterm.nerdfonts.cod_terminal .. '  New Tab',
     fuzzy = true,
     fuzzy_description = 'Select: ',
-    choices = {
-      {
-        label = wezterm.nerdfonts.md_powershell .. '  PowerShell',
-        id = 'powershell',
-      },
-      {
-        label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
-        id = 'wsl',
-      },
-    },
+    choices = choices,
     action = wezterm.action_callback(function(window, pane, id, label)
       if not id then return end
-      if id == 'powershell' then
-        window:perform_action(wezterm.action.SpawnCommandInNewTab {
-          domain = { DomainName = 'local' },
-        }, pane)
-      elseif id == 'wsl' then
-        window:perform_action(wezterm.action.SpawnCommandInNewTab {
-          domain = { DomainName = 'WSL:Ubuntu-24.04' },
-        }, pane)
-      end
+      window:perform_action(wezterm.action.SpawnCommandInNewTab {
+        domain = { DomainName = id },
+      }, pane)
     end),
   }
 end
