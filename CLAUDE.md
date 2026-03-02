@@ -94,3 +94,64 @@ Global tools are defined in `dot_config/mise/conf.d/global.toml.tmpl`:
 ### Git Worktree Workflow
 
 The gitconfig configures `git-wt` with worktree basedir at `../{gitroot}-worktrees`, auto-copying `.vscode/`, `.env`, `.envrc`, and local config files, and running `mise install` as a post-create hook.
+
+## Expo / React Native 開発ガイドライン
+
+### EAS Build の利用制限
+
+EAS の無料プランはビルド可能回数が非常に少ないため、**EAS Build は原則使用しない**。ユーザーが明示的に `eas build` の実行を指示した場合のみ使用すること。
+
+- `eas build` コマンドは**ユーザーの明示的な指示なしに実行してはならない**
+- EAS Update（OTA Update）は月1000回の枠があるため、引き続き使用してよい
+
+### ローカルビルドと実機テスト
+
+preview/development build は**ローカルでビルド**し、adb で接続した実機 Android 端末で動作確認を行う。
+
+```bash
+# development build をローカルでビルド
+npx expo run:android
+
+# または prebuild してから Gradle で直接ビルド
+npx expo prebuild --platform android
+cd android && ./gradlew assembleDebug
+
+# adb で接続確認
+adb devices
+
+# APK を実機にインストール
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+### adb による自律的な動作確認
+
+Claude Code は adb を活用して、アプリの動作確認やデザイン確認を自律的に行うこと。
+
+```bash
+# スクリーンショットを取得して確認
+adb exec-out screencap -p > /tmp/screenshot.png
+
+# 画面タップ（座標指定）
+adb shell input tap <x> <y>
+
+# テキスト入力
+adb shell input text '<text>'
+
+# スワイプ操作
+adb shell input swipe <x1> <y1> <x2> <y2> <duration_ms>
+
+# 戻るボタン
+adb shell input keyevent KEYCODE_BACK
+
+# 現在のアクティビティ確認
+adb shell dumpsys activity activities | grep mResumedActivity
+
+# ログ確認（React Native）
+adb logcat -s ReactNativeJS:V
+```
+
+動作確認のフロー:
+1. ビルド・インストール後、adb でアプリを起動
+2. スクリーンショットを取得して UI/デザインを目視確認
+3. タップ・スワイプ等の操作で画面遷移を確認
+4. 問題があればログを確認して原因を特定
