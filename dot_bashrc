@@ -178,6 +178,29 @@ alias glmd="cage glmcode --allow-dangerously-skip-permissions"
 alias co="cage codex"
 alias cod="cage codex --yolo"
 
+list_path() {
+  local selected
+  selected=$(printf '%s\n' "$PATH" \
+    | tr ':' '\n' \
+    | tac \
+    | fzf --prompt="Select PATH (bottom = higher priority) > ")
+
+  if [ -n "$selected" ]; then
+    if command -v pbcopy >/dev/null 2>&1; then
+      printf '%s' "$selected" | pbcopy
+    elif command -v xclip >/dev/null 2>&1; then
+      printf '%s' "$selected" | xclip -selection clipboard
+    elif command -v wl-copy >/dev/null 2>&1; then
+      printf '%s' "$selected" | wl-copy
+    else
+      echo "No clipboard command found"
+      return 1
+    fi
+    echo "Copied: $selected"
+  fi
+}
+alias lspath='list_path'
+
 function repo_list() {
   local repo
   repo=$( { ghq list | grep -Ev -- '-worktrees/[^/]+$'; echo '.local/share/chezmoi'; } | fzf) || return
