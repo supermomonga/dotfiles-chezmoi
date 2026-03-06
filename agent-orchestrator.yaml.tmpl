@@ -4,7 +4,7 @@
 {{- $repos := output "ghq" "list" | trim | splitList "\n" -}}
 dataDir: ~/.agent-orchestrator
 worktreeDir: ~/.worktrees
-port: 3000
+port: 3512
 defaults:
   runtime: tmux
   agent: claude-code
