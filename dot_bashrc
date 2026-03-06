@@ -173,6 +173,7 @@ alias gs="git status"
 alias gd="git diff"
 alias che="chezmoi"
 
+alias ao="$(mise ls node --json -C "$(ghq root)/github.com/ComposioHQ/agent-orchestrator" | jq -r '.[0].install_path')/bin/ao"
 alias ccd="cage claude --allow-dangerously-skip-permissions"
 alias glmd="cage glmcode --allow-dangerously-skip-permissions"
 alias co="cage codex"
