@@ -294,9 +294,11 @@ local mux = require 'wezterm-mux'
 mux.apply_to_config(config)
 
 
-config.set_environment_variables = {
-    PATH = '/opt/homebrew/bin:' .. os.getenv('PATH')
-}
+if wezterm.target_triple == 'aarch64-apple-darwin' or wezterm.target_triple == 'x86_64-apple-darwin' then
+    config.set_environment_variables = {
+        PATH = '/opt/homebrew/bin:' .. os.getenv('PATH')
+    }
+end
 
 -- remove window padding while NeoVim is active
 local function is_nvim(pane)
