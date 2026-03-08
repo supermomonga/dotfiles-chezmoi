@@ -26,6 +26,7 @@ uv = "latest"
 yazi = "latest"
 jq = "latest"
 yq = "latest"
+aws-cli = "latest"
 
 # Packages
 "cargo:pik" = "latest"
