@@ -47,19 +47,7 @@ aws-cli = "latest"
 "npm:agent-browser" = "latest"
 "npm:opencode-ai" = "latest"
 "npm:rulesync" = "latest"
-# temporary disabled.
-# mkdir & cd ~/.local/share/my-global-yepanywhere
-# create packages.json
-# {
-#   "dependencies": {
-#     "yepanywhere": "latest"
-#   },
-#   "overrides": {
-#     "@anthropic-ai/claude-agent-sdk": "0.2.56"
-#   }
-# }
-# bun install & bun link
-#"npm:yepanywhere" = "latest"
+"npm:yepanywhere" = "latest"
 "pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
 
