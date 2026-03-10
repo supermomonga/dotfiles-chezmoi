@@ -3,6 +3,13 @@
 
 ARCH=$(dpkg --print-architecture)
 
+# Add current user to sudoers (passwordless sudo)
+SUDOERS_FILE="/etc/sudoers.d/$USER"
+if [[ ! -f "$SUDOERS_FILE" ]] || ! sudo grep -q "^$USER " "$SUDOERS_FILE" 2>/dev/null; then
+  echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee "$SUDOERS_FILE" >/dev/null
+  sudo chmod 440 "$SUDOERS_FILE"
+fi
+
 # Add 1Password CLI repository
 # TODO: Environments機能がBetaからStableになったらbetaチャンネルをstableに戻す
 # ref: https://developer.1password.com/docs/cli/reference/#beta-builds
@@ -73,6 +80,52 @@ fi
 
 ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
 ensure_cmd claude 'curl -fsSL https://claude.ai/install.sh | bash'
+
+# Docker
+if ! command -v docker &>/dev/null; then
+  sudo install -m 0755 -d /etc/apt/keyrings
+  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+  CODENAME=$(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+  sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null <<SOURCES
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: ${CODENAME}
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.asc
+SOURCES
+
+  sudo apt update
+  sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+fi
+
+# Docker post-install: non-root user
+if ! groups "$USER" | grep -qw docker; then
+  sudo groupadd -f docker
+  sudo usermod -aG docker "$USER"
+fi
+
+# Docker post-install: start on boot
+if command -v docker &>/dev/null; then
+  sudo systemctl enable docker.service
+  sudo systemctl enable containerd.service
+fi
+
+# Docker post-install: log rotation
+DOCKER_DAEMON_JSON=/etc/docker/daemon.json
+if [[ ! -f "$DOCKER_DAEMON_JSON" ]]; then
+  sudo mkdir -p /etc/docker
+  sudo tee "$DOCKER_DAEMON_JSON" >/dev/null <<'JSON'
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+JSON
+fi
 
 
 {{ else if eq .chezmoi.os "darwin" -}}

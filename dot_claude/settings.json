@@ -63,6 +63,14 @@
     "x-post@supermomonga-agent-plugins": true,
     "youtube-transcribe@supermomonga-agent-plugins": true
   },
+  "extraKnownMarketplaces": {
+    "supermomonga-agent-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "~/ghq/github.com/supermomonga/claude-plugins"
+      }
+    }
+  },
   "language": "Japanese",
   "skipDangerousModePermissionPrompt": true
 }
