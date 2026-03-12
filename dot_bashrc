@@ -234,6 +234,10 @@ starship preset pure-preset -o ~/.config/starship/presets/pure.toml
 
 export PATH="$HOME/.local/bin:$PATH"
 
+if [ -f ~/.local_bashrc ]; then
+  . ~/.local_bashrc
+fi
+
 # Workaround to disable spawn powershell by Claude Code repeatedly.
 # ref: https://github.com/anthropics/claude-code/issues/14352
 if is_wsl; then
