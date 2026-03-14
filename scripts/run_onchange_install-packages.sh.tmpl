@@ -79,8 +79,17 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
   sudo apt install -y "${MISSING[@]}"
 fi
 
+# ta-lib
+if ! dpkg -s ta-lib &>/dev/null; then
+  curl -fsSL -o /tmp/ta-lib_0.6.4_${ARCH}.deb \
+    "https://github.com/ta-lib/ta-lib/releases/download/v0.6.4/ta-lib_0.6.4_${ARCH}.deb"
+  sudo dpkg -i /tmp/ta-lib_0.6.4_${ARCH}.deb
+  rm -f /tmp/ta-lib_0.6.4_${ARCH}.deb
+fi
+
 ensure_cmd ~/.local/bin/mise 'curl https://mise.run | sh'
 ensure_cmd claude 'curl -fsSL https://claude.ai/install.sh | bash'
+ensure_cmd tailscale 'curl -fsSL https://tailscale.com/install.sh | sh'
 
 # Docker
 if ! command -v docker &>/dev/null; then
