@@ -48,6 +48,7 @@ aws-cli = "latest"
 "npm:opencode-ai" = "latest"
 "npm:rulesync" = "latest"
 "npm:yepanywhere" = "latest"
+"pipx:arxivterminal" = "latest"
 "pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
 
