@@ -20,6 +20,7 @@ PostToolUse:
         command: "gofmt -w {.tool_input.file_path}"
 
 # Prepend mise exec -- to all Bash commands
+# Claude Agent SDK では cd hook が効かず mise の機能が使われないことの対策
 PreToolUse:
   - matcher: "Bash"
     actions:
