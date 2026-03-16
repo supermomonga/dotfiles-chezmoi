@@ -1,0 +1,12 @@
+#!/bin/bash
+# Claude Code PreToolUse:Bash hook (via cchook)
+# Prepend "mise exec --" to all Bash commands
+# Reads hook JSON from stdin, outputs cchook-compatible JSON
+
+COMMAND=$(jq -r '.tool_input.command')
+
+if echo "$COMMAND" | grep -q "^mise exec"; then
+  jq -n '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
+else
+  jq -n --arg cmd "mise exec -- $COMMAND" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "updatedInput": {"command": $cmd}}}'
+fi

@@ -33,6 +33,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cchook -event PreToolUse"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -72,5 +83,6 @@
     }
   },
   "language": "Japanese",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "high"
 }

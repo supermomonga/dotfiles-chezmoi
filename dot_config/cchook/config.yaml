@@ -19,8 +19,15 @@ PostToolUse:
       - type: command
         command: "gofmt -w {.tool_input.file_path}"
 
-# Guide users to use better alternatives
+# Prepend mise exec -- to all Bash commands
 PreToolUse:
+  - matcher: "Bash"
+    actions:
+      - type: command
+        use_stdin: true
+        command: claude-hook-mise-prepend
+
+# Guide users to use better alternatives
   - matcher: "Bash"
     conditions:
       - type: command_starts_with
