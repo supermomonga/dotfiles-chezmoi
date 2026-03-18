@@ -60,6 +60,12 @@ ensure_file /etc/apt/keyrings/githubcli-archive-keyring.gpg \
 ensure_file_content /etc/apt/sources.list.d/github-cli.list \
   echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
 
+# Add Cloudflare repository
+ensure_file /usr/share/keyrings/cloudflare-public-v2.gpg \
+  curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg
+ensure_file_content /etc/apt/sources.list.d/cloudflared.list \
+  echo "deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main"
+
 # Install missing packages
 PACKAGES=(
   libreadline-dev # for lua
@@ -69,6 +75,7 @@ PACKAGES=(
   1password-cli
   gh
   dotnet-sdk-10.0
+  cloudflared
   # for arXiv document processing
   pandoc
   poppler-utils
