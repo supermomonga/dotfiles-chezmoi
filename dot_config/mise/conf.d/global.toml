@@ -35,6 +35,7 @@ aws-cli = "latest"
 "github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
 "github:corrupt952/tmuxist" = { version = "latest", os = ["linux", "macos"] }
 "github:prskr/git-age" = "latest"
+"github:railwayapp/railpack" = "latest"
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
 # temporary disabled.
