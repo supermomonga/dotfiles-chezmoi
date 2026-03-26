@@ -1,4 +1,8 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [],
     "deny": []
@@ -72,7 +76,8 @@
     "context7@claude-plugins-official": true,
     "team-builder@claude-code-customes": true,
     "x-post@supermomonga-agent-plugins": true,
-    "youtube-transcribe@supermomonga-agent-plugins": true
+    "youtube-transcribe@supermomonga-agent-plugins": true,
+    "example-skills@anthropic-agent-skills": true
   },
   "extraKnownMarketplaces": {
     "supermomonga-agent-plugins": {
@@ -80,9 +85,15 @@
         "source": "directory",
         "path": "~/ghq/github.com/supermomonga/claude-plugins"
       }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
     }
   },
   "language": "Japanese",
-  "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "high"
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true
 }
