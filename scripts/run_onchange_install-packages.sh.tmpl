@@ -60,6 +60,14 @@ ensure_file /etc/apt/keyrings/githubcli-archive-keyring.gpg \
 ensure_file_content /etc/apt/sources.list.d/github-cli.list \
   echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
 
+# Add fruit.je repository (mpv)
+ensure_file /usr/share/keyrings/fruit-archive-keyring.gpg \
+  curl -fsSL https://apt.fruit.je/fruit.gpg
+FRUITJE_ID=$(. /etc/os-release && echo "$ID")
+FRUITJE_CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME}")
+ensure_file_content /etc/apt/sources.list.d/fruit.list \
+  echo "deb [signed-by=/usr/share/keyrings/fruit-archive-keyring.gpg] https://apt.fruit.je/${FRUITJE_ID} ${FRUITJE_CODENAME} mpv"
+
 # Add Cloudflare repository
 ensure_file /usr/share/keyrings/cloudflare-public-v2.gpg \
   curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg
@@ -76,6 +84,7 @@ PACKAGES=(
   gh
   dotnet-sdk-10.0
   cloudflared
+  mpv
   # for arXiv document processing
   pandoc
   poppler-utils

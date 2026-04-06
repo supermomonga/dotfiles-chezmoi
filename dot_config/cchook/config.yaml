@@ -4,10 +4,10 @@ PermissionRequest:
       command: edge-playback -v ja-JP-NanamiNeural -t "クロードが許可を求めています"
 
 # Disable untill hook input parameter extended with team info
-#Stop:
-#  - actions:
-#    - type: command
-#      command: edge-playback -v ja-JP-NanamiNeural -t "クロードがタスクを完了しました"
+Stop:
+  - actions:
+    - type: command
+      command: edge-playback -v ja-JP-NanamiNeural -t "クロードがタスクを完了しました"
 
 # Auto-format Go files after Write/Edit
 PostToolUse:
@@ -29,6 +29,41 @@ PreToolUse:
         command: claude-hook-mise-prepend
 
 # Guide users to use better alternatives
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "apt install"
+    actions:
+      - type: output
+        message: "apt installは禁止です。ユーザーに対して実行を依頼してください。"
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "npm"
+    actions:
+      - type: output
+        message: "npmは使わず`bun`を代わりに使いましょう"
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "npx"
+    actions:
+      - type: output
+        message: "npxは使わず`bun x`を代わりに使いましょう"
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "pnpm"
+    actions:
+      - type: output
+        message: "pnpmは使わず`bun`を代わりに使いましょう"
+  - matcher: "Bash"
+    conditions:
+      - type: command_starts_with
+        value: "yarn"
+    actions:
+      - type: output
+        message: "yarnは使わず`bun`を代わりに使いましょう"
   - matcher: "Bash"
     conditions:
       - type: command_starts_with
