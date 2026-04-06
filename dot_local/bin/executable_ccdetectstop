@@ -18,9 +18,33 @@ const DEBOUNCE_MS = 300;
 function matchesFilter(obj: Record<string, unknown>): boolean {
   return (
     obj.type === "system" &&
-    obj.subtype === "stop_hook_summary" &&
-    obj.agentId == null
+    obj.subtype === "stop_hook_summary"
   );
+}
+
+/** Agent tool_use の数と toolUseResult(agentId付き) の数を比較して未完了エージェントがいるか判定 */
+function hasPendingAgents(lines: string[]): boolean {
+  let calls = 0;
+  let results = 0;
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.type === "assistant") {
+        const content = obj.message?.content;
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === "tool_use" && block.name === "Agent") calls++;
+          }
+        }
+      }
+      if (obj.type === "user" && obj.toolUseResult?.agentId != null) {
+        results++;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return calls > results;
 }
 
 async function processFile(filePath: string): Promise<void> {
@@ -82,7 +106,7 @@ async function processFile(filePath: string): Promise<void> {
     lastTimestamp.set(filePath, maxTs);
   }
 
-  if (matched) {
+  if (matched && !hasPendingAgents(lines)) {
     console.log(`[${name}]: 作業完了を検知 🔔`);
     const proc = Bun.spawn([
       "edge-playback",
@@ -107,6 +131,8 @@ if (!existsSync(WATCH_DIR)) {
 console.log(`監視開始: ${WATCH_DIR}`);
 watch(WATCH_DIR, { recursive: true }, (_event, filename) => {
   if (!filename?.endsWith(".jsonl")) return;
+  // サブエージェントの transcript は無視
+  if (filename.includes("subagents")) return;
   const filePath = join(WATCH_DIR, filename);
 
   // debouce: 短時間の連続イベントをまとめる
