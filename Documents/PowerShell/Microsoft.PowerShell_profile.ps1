@@ -5,8 +5,15 @@ $env:XDG_DATA_HOME = "$HOME\.local\share"
 $env:XDG_STATE_HOME = "$HOME\.local\state"
 $env:XDG_CACHE_HOME = "$HOME\.cache"
 
-# mise
-(&mise activate pwsh) | Out-String | Invoke-Expression
+# mise (cached activation for faster startup)
+$_miseCache = "$HOME\.cache\mise\activate.ps1"
+$_miseConf = "$HOME\.config\mise\conf.d\global.toml"
+if (-not (Test-Path $_miseCache) -or
+    (Test-Path $_miseConf) -and (Get-Item $_miseConf).LastWriteTime -gt (Get-Item $_miseCache).LastWriteTime) {
+    $null = New-Item -ItemType Directory -Path (Split-Path $_miseCache) -Force
+    & mise activate pwsh | Set-Content $_miseCache -Encoding UTF8
+}
+. $_miseCache
 
 # Claude Code
 $resolved = Resolve-Path "~/.local/bin" -ErrorAction SilentlyContinue
@@ -94,8 +101,8 @@ function co { cage codex @args }
 function cod { cage codex --yolo @args }
 
 # Starship
+$env:STARSHIP_CONFIG = "$HOME\.config\starship\presets\pure.toml"
 Invoke-Expression (&starship init powershell)
-starship preset pure-preset -o $(Resolve-Path "~/.config/starship/presets/pure.toml")
 
 $localProfile = Join-Path $HOME ".local_profile.ps1"
 if (Test-Path $localProfile) {
