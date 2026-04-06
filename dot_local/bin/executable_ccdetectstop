@@ -16,12 +16,10 @@ const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const DEBOUNCE_MS = 300;
 
 function matchesFilter(obj: Record<string, unknown>): boolean {
-  const data = obj.data as Record<string, unknown> | undefined;
-  // Agent Teamsに関連しないものだけが本来欲しいStopイベント
   return (
-    data?.hookEvent === "Stop" &&
-    data?.command === "true stop" &&
-    obj.teamName == null
+    obj.type === "system" &&
+    obj.subtype === "stop_hook_summary" &&
+    obj.agentId == null
   );
 }
 
