@@ -95,7 +95,8 @@
   },
   "defaultShell": "powershell",
   "env": {
-    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "language": "Japanese",
   "effortLevel": "high",

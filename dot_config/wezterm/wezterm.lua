@@ -24,7 +24,9 @@ local launch_action = wezterm.action.SpawnTab 'CurrentPaneDomain'
 
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
   config.default_prog = { 'pwsh.exe' }
-  config.default_domain = 'WSL:Ubuntu-24.04'
+  config.default_domain = 'local'
+  -- config.default_prog = { 'pwsh.exe' }
+  -- config.default_domain = 'WSL:Ubuntu-24.04'
   config.wsl_domains = {
     {
       name = 'WSL:Ubuntu-24.04',
@@ -36,12 +38,12 @@ if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
   -- Build launcher choices: WSL, PowerShell, + SSH hosts from ssh_config
   local choices = {
     {
-      label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
-      id = 'WSL:Ubuntu-24.04',
-    },
-    {
       label = wezterm.nerdfonts.md_powershell .. '  PowerShell',
       id = 'local',
+    },
+    {
+      label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
+      id = 'WSL:Ubuntu-24.04',
     },
   }
   for _, dom in ipairs(config.ssh_domains) do
