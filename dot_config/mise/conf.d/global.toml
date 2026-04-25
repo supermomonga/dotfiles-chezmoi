@@ -32,6 +32,7 @@ aws-cli = "latest"
 "cargo:pik" = "latest"
 "cargo:ultraman" = { version = "latest", os = ["linux", "macos"] }
 "github:k1LoW/mo" = { version = "latest", os = ["windows", "linux", "macos"] }
+"github:stripe/stripe-cli" = { version = "latest", os = ["windows", "linux", "macos"] }
 "github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
 "github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
 "github:corrupt952/tmuxist" = { version = "latest", os = ["linux", "macos"] }
