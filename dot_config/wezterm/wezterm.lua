@@ -23,6 +23,9 @@ end
 local launch_action = wezterm.action.SpawnTab 'CurrentPaneDomain'
 
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
+  -- スリープ復帰問題に対処
+  config.front_end = "OpenGL"
+
   config.default_prog = { 'pwsh.exe' }
   config.default_domain = 'local'
   -- config.default_prog = { 'pwsh.exe' }
