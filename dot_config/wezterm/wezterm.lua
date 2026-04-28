@@ -5,6 +5,30 @@ local config = wezterm.config_builder()
 
 config.window_close_confirmation = 'NeverPrompt'
 
+local function onepassword_ssh_auth_sock()
+  -- if wezterm.target_triple:find('windows', 1, true) then
+  --   return [[\\.\pipe\openssh-ssh-agent]]
+  -- end
+
+  local onep_auth = string.format('%s/.1password/agent.sock', wezterm.home_dir)
+  -- Glob is being used here as an indirect way to check to see if
+  -- the socket exists or not. If it didn't, the length of the result
+  -- would be 0
+  if #wezterm.glob(onep_auth) == 1 then
+    return onep_auth
+  end
+end
+
+if wezterm.target_triple:find('windows', 1, true) then
+  -- \\.\pipe\openssh-ssh-agent と競合する？
+  config.mux_enable_ssh_agent = false
+else
+  local onep_auth = onepassword_ssh_auth_sock()
+  if onep_auth then
+    config.default_ssh_auth_sock = onep_auth
+  end
+end
+
 -- SSH domains: auto-detect from ~/.ssh/config
 -- Non-multiplexed (SSH:) only — no wezterm needed on remote
 -- assume_shell = 'Posix' enables cwd tracking for pane splits

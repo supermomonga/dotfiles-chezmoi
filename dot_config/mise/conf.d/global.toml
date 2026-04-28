@@ -38,6 +38,16 @@ aws-cli = "latest"
 "github:corrupt952/tmuxist" = { version = "latest", os = ["linux", "macos"] }
 "github:prskr/git-age" = "latest"
 "github:railwayapp/railpack" = "latest"
+"github:wezterm/wezterm" = {
+  version = "nightly",
+  prerelease = true,
+  platforms = {
+    "windows-x64" = { asset_pattern = "WezTerm-windows-nightly.zip" },
+    "macos-x64" = { asset_pattern = "WezTerm-macos-nightly.zip" },
+    "macos-arm64" = { asset_pattern = "WezTerm-macos-nightly.zip" },
+    "linux-x64" = { asset_pattern = "WezTerm-nightly-Ubuntu20.04.AppImage" },
+  },
+}
 "go:github.com/babarot/gomi" = "latest"
 "go:github.com/k1LoW/git-wt" = "latest"
 # temporary disabled.
