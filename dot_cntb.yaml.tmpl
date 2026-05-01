@@ -1,4 +1,4 @@
-{{- if and (lookPath "op") (eq (output "sh" "-c" "op user get --me --format json >/dev/null 2>&1 && echo -n true || echo -n false") "true") -}}
+{{- if and (lookPath "op") (eq (output "sh" "-c" "op user get --me --format json >/dev/null 2>&1 && printf %s true || printf %s false") "true") -}}
 debug: warn
 oauth2-tokenurl: https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token
 oauth2-clientid: {{ onepasswordRead "op://chezmoi/Contabo/API/client_id" | quote }}
