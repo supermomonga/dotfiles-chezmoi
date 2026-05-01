@@ -1,10 +1,16 @@
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
 network_access = true
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 web_search_request = true
-notify = ["sh", "-c", "edge-playback -v ja-JP-NanamiNeural -t \"コーデックスのタスクが完了しました\""]
+service_tier = "fast"
+#notify = ["sh", "-c", "edge-playback -v ja-JP-NanamiNeural -t \"コーデックスのタスクが完了しました\""]
+
+[features]
+codex_hooks = true
+fast_mode = true
+remote_connections = true
 
 [sandbox_workspace_write]
 writable_roots = ["~/.cache/"]
@@ -14,7 +20,7 @@ approval_policy = "never"
 sandbox_mode    = "workspace-write"
 
 [profiles.terminal-command]
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_reasoning_effort = "low"
 network_access = false
 sandbox_mode = "read-only"
@@ -32,6 +38,15 @@ approval_policy = "on-request"
 [mcp_servers.context7]
 url = "https://mcp.context7.com/mcp"
 env_http_headers = { "CONTEXT7_API_KEY" = "CONTEXT7_API_KEY" }
+
+[plugins."gmail@openai-curated"]
+enabled = true
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
 
 {{- if lookPath "ghq" }}
 {{- $ghqRoot := output "ghq" "root" | trim }}
