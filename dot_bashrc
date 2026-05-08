@@ -128,8 +128,16 @@ is_wsl() {
   return 1
 }
 
+setup_1password_ssh_agent_linux() {
+  export SSH_AUTH_SOCK=~/.1password/agent.sock
+}
+
+setup_1password_ssh_agent_macos() {
+  export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+}
+
 # Use Windows host machine's 1Password SSH Agent
-setup_op_ssh_agent() {
+setup_1password_ssh_agent_wsl() {
   export SSH_AUTH_SOCK=$HOME/.ssh/agent.sock
   if ! ssh-add -l >/dev/null 2>&1; then
     pkill -f "socat.*$SSH_AUTH_SOCK" 2>/dev/null
@@ -138,8 +146,24 @@ setup_op_ssh_agent() {
   fi
 }
 
+setup_1password_ssh_agent() {
+  case "$(uname -s)" in
+    Darwin)
+      setup_1password_ssh_agent_macos
+      ;;
+    Linux)
+      if is_wsl; then
+        setup_1password_ssh_agent_wsl
+      else
+        setup_1password_ssh_agent_linux
+      fi
+      ;;
+  esac
+}
+
+setup_1password_ssh_agent
+
 if is_wsl; then
-  setup_op_ssh_agent
   export BROWSER=wslview
 fi
 
