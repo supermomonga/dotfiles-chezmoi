@@ -14,7 +14,7 @@ rust = "latest"
 zig = "latest"
 # for Neovim compatibility, use v5.1
 lua = { version = "5.1", os = ["linux", "macos"] }
-lua-bin = { version = "5.1", os = ["windows"] }
+#lua-bin = { version = "5.1", os = ["windows"] }
 
 # Tools
 fzf = "latest"
