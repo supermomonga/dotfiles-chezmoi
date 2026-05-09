@@ -205,6 +205,12 @@ alias glmd="cage glmcode --allow-dangerously-skip-permissions"
 alias co="cage codex"
 alias cod="cage codex --yolo"
 
+wezterm_appimages=("$HOME"/.local/share/mise/installs/github-wezterm-wezterm/latest/WezTerm-nightly-*.AppImage)
+if [ -e "${wezterm_appimages[0]}" ]; then
+  alias wezterm="\"${wezterm_appimages[0]}\""
+fi
+unset wezterm_appimages
+
 list_path() {
   local selected
   selected=$(printf '%s\n' "$PATH" \
