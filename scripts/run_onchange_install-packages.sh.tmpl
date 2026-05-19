@@ -76,6 +76,7 @@ ensure_file_content /etc/apt/sources.list.d/cloudflared.list \
 
 # Install missing packages
 PACKAGES=(
+  git-filter-repo
   libreadline-dev # for lua
   unzip # for lua
   build-essential
