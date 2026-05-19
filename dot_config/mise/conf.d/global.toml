@@ -31,13 +31,13 @@ aws-cli = "latest"
 # Packages
 "cargo:pik" = "latest"
 "cargo:ultraman" = { version = "latest", os = ["linux", "macos"] }
+#"cargo:https://github.com/JakkuSakura/codex-proxy" = { version = "branch:main", os = ["linux"] }
 "github:k1LoW/mo" = { version = "latest", os = ["windows", "linux", "macos"] }
 "github:stripe/stripe-cli" = { version = "latest", os = ["windows", "linux", "macos"] }
-"github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
-"github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
-"github:corrupt952/tmuxist" = { version = "latest", os = ["linux", "macos"] }
+#"github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
+#"github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
+"github:router-for-me/CLIProxyAPI" = { version = "latest", os = ["linux", "macos", "windows"] }
 "github:prskr/git-age" = "latest"
-"github:railwayapp/railpack" = "latest"
 "github:wezterm/wezterm" = {
   version = "nightly",
   prerelease = true,
@@ -57,7 +57,7 @@ aws-cli = "latest"
 "go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
 "go:github.com/x-motemen/ghq" = "latest"
 "npm:@openai/codex" = "latest"
-"npm:@cloudcli-ai/cloudcli" = "latest"
+#"npm:@cloudcli-ai/cloudcli" = "latest"
 "npm:agent-browser" = "latest"
 "npm:kanban" = "latest"
 "npm:opencode-ai" = "latest"
@@ -68,7 +68,7 @@ aws-cli = "latest"
 "npm:vibe-kanban" = "latest"
 "npm:yepanywhere" = "latest"
 "pipx:apm-cli" = "latest"
-"pipx:arxivterminal" = "latest"
+#"pipx:arxivterminal" = "latest"
 "pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
 
