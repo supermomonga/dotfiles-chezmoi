@@ -6,27 +6,27 @@ local config = wezterm.config_builder()
 config.window_close_confirmation = 'NeverPrompt'
 
 local function onepassword_ssh_auth_sock()
-  -- if wezterm.target_triple:find('windows', 1, true) then
-  --   return [[\\.\pipe\openssh-ssh-agent]]
-  -- end
+    -- if wezterm.target_triple:find('windows', 1, true) then
+    --   return [[\\.\pipe\openssh-ssh-agent]]
+    -- end
 
-  local onep_auth = string.format('%s/.1password/agent.sock', wezterm.home_dir)
-  -- Glob is being used here as an indirect way to check to see if
-  -- the socket exists or not. If it didn't, the length of the result
-  -- would be 0
-  if #wezterm.glob(onep_auth) == 1 then
-    return onep_auth
-  end
+    local onep_auth = string.format('%s/.1password/agent.sock', wezterm.home_dir)
+    -- Glob is being used here as an indirect way to check to see if
+    -- the socket exists or not. If it didn't, the length of the result
+    -- would be 0
+    if #wezterm.glob(onep_auth) == 1 then
+        return onep_auth
+    end
 end
 
 if wezterm.target_triple:find('windows', 1, true) then
-  -- \\.\pipe\openssh-ssh-agent と競合する？
-  config.mux_enable_ssh_agent = false
+    -- \\.\pipe\openssh-ssh-agent と競合する？
+    config.mux_enable_ssh_agent = false
 else
-  local onep_auth = onepassword_ssh_auth_sock()
-  if onep_auth then
-    config.default_ssh_auth_sock = onep_auth
-  end
+    local onep_auth = onepassword_ssh_auth_sock()
+    if onep_auth then
+        config.default_ssh_auth_sock = onep_auth
+    end
 end
 
 -- SSH domains: auto-detect from ~/.ssh/config
@@ -34,65 +34,65 @@ end
 -- assume_shell = 'Posix' enables cwd tracking for pane splits
 config.ssh_backend = 'Ssh2'
 do
-  local ssh_doms = {}
-  for _, dom in ipairs(wezterm.default_ssh_domains()) do
-    if dom.name:match('^SSH:') then
-      dom.assume_shell = 'Posix'
-      table.insert(ssh_doms, dom)
+    local ssh_doms = {}
+    for _, dom in ipairs(wezterm.default_ssh_domains()) do
+        if dom.name:match('^SSH:') then
+            dom.assume_shell = 'Posix'
+            table.insert(ssh_doms, dom)
+        end
     end
-  end
-  config.ssh_domains = ssh_doms
+    config.ssh_domains = ssh_doms
 end
 
 local launch_action = wezterm.action.SpawnTab 'CurrentPaneDomain'
 
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
-  -- スリープ復帰問題に対処
-  config.front_end = "OpenGL"
+    -- スリープ復帰問題に対処
+    config.front_end = "OpenGL"
 
-  config.default_prog = { 'pwsh.exe' }
-  config.default_domain = 'local'
-  -- config.default_prog = { 'pwsh.exe' }
-  -- config.default_domain = 'WSL:Ubuntu-24.04'
-  config.wsl_domains = {
-    {
-      name = 'WSL:Ubuntu-24.04',
-      distribution = 'Ubuntu-24.04',
-      default_cwd = '~',
+    config.default_prog = { 'pwsh.exe' }
+    config.default_domain = 'local'
+    -- config.default_prog = { 'pwsh.exe' }
+    -- config.default_domain = 'WSL:Ubuntu-24.04'
+    config.wsl_domains = {
+        {
+            name = 'WSL:Ubuntu-24.04',
+            distribution = 'Ubuntu-24.04',
+            default_cwd = '~',
+        }
     }
-  }
 
-  -- Build launcher choices: WSL, PowerShell, + SSH hosts from ssh_config
-  local choices = {
-    {
-      label = wezterm.nerdfonts.md_powershell .. '  PowerShell',
-      id = 'local',
-    },
-    {
-      label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
-      id = 'WSL:Ubuntu-24.04',
-    },
-  }
-  for _, dom in ipairs(config.ssh_domains) do
-    local host = dom.name:gsub('^SSH:', '')
-    table.insert(choices, {
-      label = wezterm.nerdfonts.cod_remote .. '  ' .. host,
-      id = dom.name,
-    })
-  end
+    -- Build launcher choices: WSL, PowerShell, + SSH hosts from ssh_config
+    local choices = {
+        {
+            label = wezterm.nerdfonts.md_powershell .. '  PowerShell',
+            id = 'local',
+        },
+        {
+            label = wezterm.nerdfonts.cod_terminal_linux .. '  WSL: Ubuntu 24.04',
+            id = 'WSL:Ubuntu-24.04',
+        },
+    }
+    for _, dom in ipairs(config.ssh_domains) do
+        local host = dom.name:gsub('^SSH:', '')
+        table.insert(choices, {
+            label = wezterm.nerdfonts.cod_remote .. '  ' .. host,
+            id = dom.name,
+        })
+    end
 
-  launch_action = wezterm.action.InputSelector {
-    title = wezterm.nerdfonts.cod_terminal .. '  New Tab',
-    fuzzy = true,
-    fuzzy_description = 'Select: ',
-    choices = choices,
-    action = wezterm.action_callback(function(window, pane, id, label)
-      if not id then return end
-      window:perform_action(wezterm.action.SpawnCommandInNewTab {
-        domain = { DomainName = id },
-      }, pane)
-    end),
-  }
+    launch_action = wezterm.action.InputSelector {
+        title = wezterm.nerdfonts.cod_terminal .. '  New Tab',
+        fuzzy = true,
+        fuzzy_description = 'Select: ',
+        choices = choices,
+        action = wezterm.action_callback(function(window, pane, id, label)
+            if not id then return end
+            window:perform_action(wezterm.action.SpawnCommandInNewTab {
+                domain = { DomainName = id },
+            }, pane)
+        end),
+    }
 end
 
 
@@ -152,7 +152,7 @@ config.font = wezterm.font({
         'ss11',                       -- 半濁点の強調 [ぱぴぷぺぽ パピプペポ]
     }
 })
-config.font_size = 11
+config.font_size = 13
 
 
 config.use_resize_increments = true
@@ -172,7 +172,7 @@ config.window_frame = {
     -- serif font here instead of monospace for a nicer look?
     -- font = wezterm.font({ family = 'Berkeley Mono', weight = 'Bold' }),
     font = wezterm.font({ family = 'Firple Slim', weight = 'Regular' }),
-    font_size = 11,
+    font_size = 13,
 }
 
 
@@ -266,11 +266,11 @@ tabs.apply_to_config(config)
 
 -- Table mapping keypresses to actions
 config.keys = {
-    { key = '-', mods = 'CTRL', action = wezterm.action.SendKey({ mods = 'CTRL', key = '-' }) },
-    { key = '=', mods = 'CTRL', action = wezterm.action.SendKey({ mods = 'CTRL', key = '=' }) },
+    { key = '-',     mods = 'CTRL', action = wezterm.action.SendKey({ mods = 'CTRL', key = '-' }) },
+    { key = '=',     mods = 'CTRL', action = wezterm.action.SendKey({ mods = 'CTRL', key = '=' }) },
 
     -- Alt+Enter をアプリケーションにパススルー（フルスクリーントグルを無効化）
-    { key = 'Enter', mods = 'ALT', action = wezterm.action.SendKey({ mods = 'ALT', key = 'Enter' }) },
+    { key = 'Enter', mods = 'ALT',  action = wezterm.action.SendKey({ mods = 'ALT', key = 'Enter' }) },
 
     -- Cmd+Shift+Pでコマンドパレットを開く
     {
