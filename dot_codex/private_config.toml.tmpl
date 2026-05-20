@@ -5,12 +5,28 @@ sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 web_search_request = true
 service_tier = "fast"
+personality = "pragmatic"
 #notify = ["sh", "-c", "edge-playback -v ja-JP-NanamiNeural -t \"コーデックスのタスクが完了しました\""]
 
 [features]
-codex_hooks = true
+hooks = true
 fast_mode = true
 remote_connections = true
+memories = true
+multi_agent = true
+
+[marketplaces.openai-bundled]
+source_type = "local"
+source = "{{ joinPath .chezmoi.homeDir ".codex/.tmp/bundled-marketplaces/openai-bundled" }}"
+
+[marketplaces.openai-primary-runtime]
+source_type = "local"
+source = "{{ joinPath .chezmoi.homeDir ".cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime" }}"
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
 
 [sandbox_workspace_write]
 writable_roots = ["~/.cache/"]
