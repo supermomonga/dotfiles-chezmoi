@@ -1,0 +1,915 @@
+'use strict';
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+  var c = arguments.length;
+  var r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc;
+  var d;
+  for (var i = decorators.length - 1; i >= 0; i--) {
+    d = decorators[i];
+    if (d) {
+      r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    }
+  }
+  if (c > 3 && r) {
+    Object.defineProperty(target, key, r);
+  }
+  return r;
+};
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const angularCore = require('@angular/core');
+const tabbyCore = require('tabby-core');
+const tabbyTerminal = require('tabby-terminal');
+let tabbySSH = {};
+try {
+  tabbySSH = require('tabby-ssh');
+} catch (_) {
+  // SSH support is optional; the rest of the plugin can run without it.
+}
+
+const { NgModule, Injectable } = angularCore;
+const TabbyCoreModule = tabbyCore.default || tabbyCore;
+const ConfigProvider = tabbyCore.ConfigProvider;
+const HotkeyProvider = tabbyCore.HotkeyProvider;
+const TerminalDecorator = tabbyTerminal.TerminalDecorator;
+const SessionMiddleware = tabbyTerminal.SessionMiddleware;
+const SSHProfileImporter = tabbySSH.SSHProfileImporter;
+
+function expandHome(value) {
+  if (!value) {
+    return value;
+  }
+  if (value === '~') {
+    return os.homedir();
+  }
+  if (value.startsWith('~/') || value.startsWith('~' + path.sep)) {
+    return path.join(os.homedir(), value.slice(2));
+  }
+  return value;
+}
+
+function shellQuote(value) {
+  if (/^[A-Za-z0-9_@%+=:,./~-]+$/.test(value)) {
+    return value;
+  }
+  return "'" + value.replace(/'/g, "'\\''") + "'";
+}
+
+class WezTermCompatConfigProvider extends ConfigProvider {
+  constructor() {
+    super();
+    this.defaults = {
+      weztermCompat: {
+        leaderTimeout: 1000,
+        statusOverlay: true,
+        yaziCommand: 'yazi',
+      },
+      hotkeys: {
+        'tabby-wezterm-compat': {
+          'send-ctrl-t': [],
+          'yazi-split': [],
+        },
+      },
+    };
+  }
+}
+
+class WezTermCompatHotkeyProvider extends HotkeyProvider {
+  async provide() {
+    return [
+      {
+        id: 'tabby-wezterm-compat.send-ctrl-t',
+        name: 'Send Ctrl-T to terminal',
+      },
+      {
+        id: 'tabby-wezterm-compat.yazi-split',
+        name: 'Open yazi in a split pane',
+      },
+    ];
+  }
+}
+
+function splitWords(value) {
+  const result = [];
+  const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+  let match;
+  while ((match = re.exec(value)) !== null) {
+    result.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return result;
+}
+
+function stripComment(line) {
+  let quote = null;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if ((ch === '"' || ch === "'") && line[i - 1] !== '\\') {
+      quote = quote === ch ? null : quote ?? ch;
+    }
+    if (ch === '#' && !quote) {
+      return line.slice(0, i);
+    }
+  }
+  return line;
+}
+
+function globToRegExp(pattern) {
+  return new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+}
+
+function expandGlob(pattern) {
+  pattern = expandHome(pattern);
+  if (!/[*?]/.test(pattern)) {
+    return [pattern];
+  }
+  const root = path.isAbsolute(pattern) ? path.parse(pattern).root : process.cwd();
+  const parts = pattern.slice(root.length).split(/[\\/]+/).filter(Boolean);
+  let dirs = [root || '.'];
+  for (const part of parts) {
+    const next = [];
+    const hasGlob = /[*?]/.test(part);
+    const re = hasGlob ? globToRegExp(part) : null;
+    for (const dir of dirs) {
+      try {
+        if (hasGlob) {
+          for (const entry of fs.readdirSync(dir)) {
+            if (re.test(entry)) {
+              next.push(path.join(dir, entry));
+            }
+          }
+        } else {
+          next.push(path.join(dir, part));
+        }
+      } catch (_) {
+        // Ignore unreadable include paths, matching OpenSSH's forgiving behavior.
+      }
+    }
+    dirs = next;
+  }
+  return dirs;
+}
+
+function readConfigLines(file, seen = new Set()) {
+  file = expandHome(file);
+  if (seen.has(file)) {
+    return [];
+  }
+  seen.add(file);
+  let data;
+  try {
+    data = fs.readFileSync(file, 'utf8');
+  } catch (_) {
+    return [];
+  }
+
+  const lines = [];
+  for (const rawLine of data.split(/\r?\n/)) {
+    const line = stripComment(rawLine).trim();
+    if (!line) {
+      continue;
+    }
+    const match = line.match(/^(\S+)\s+(.*)$/);
+    if (!match) {
+      continue;
+    }
+    const key = match[1].toLowerCase();
+    const value = match[2].trim();
+    if (key === 'include') {
+      const baseDir = path.dirname(file);
+      for (let includePath of splitWords(value)) {
+        if (!path.isAbsolute(expandHome(includePath)) && !includePath.startsWith('~')) {
+          includePath = path.join(baseDir, includePath);
+        }
+        for (const expanded of expandGlob(includePath)) {
+          lines.push(...readConfigLines(expanded, seen));
+        }
+      }
+    } else {
+      lines.push([key, value]);
+    }
+  }
+  return lines;
+}
+
+function parseOpenSSHConfig(file) {
+  const entries = [];
+  const globalOptions = {};
+  let current = null;
+
+  for (const [key, value] of readConfigLines(file)) {
+    if (key === 'host') {
+      const patterns = splitWords(value);
+      current = { patterns, options: {} };
+      entries.push(current);
+      continue;
+    }
+    const target = current ? current.options : globalOptions;
+    const normalizedValue = value.trim();
+    if (key === 'identityfile') {
+      target.identityfile = target.identityfile || [];
+      target.identityfile.push(normalizedValue);
+    } else if (!(key in target)) {
+      target[key] = normalizedValue;
+    }
+  }
+
+  const wildcardDefaults = {};
+  for (const entry of entries) {
+    if (entry.patterns.length === 1 && entry.patterns[0] === '*') {
+      Object.assign(wildcardDefaults, entry.options);
+    }
+  }
+
+  return entries
+    .filter(entry => !entry.patterns.some(pattern => pattern.includes('*') || pattern.includes('?') || pattern.startsWith('!')))
+    .flatMap(entry => entry.patterns.map(alias => ({
+      alias,
+      options: {
+        ...globalOptions,
+        ...wildcardDefaults,
+        ...entry.options,
+      },
+    })));
+}
+
+function substituteProxyCommand(command, host, port, user) {
+  if (!command) {
+    return null;
+  }
+  return command
+    .replace(/%h/g, host)
+    .replace(/%p/g, String(port))
+    .replace(/%r/g, user);
+}
+
+class OpenSSHConfigImporter extends (SSHProfileImporter || class {}) {
+  async getProfiles() {
+    const configFile = path.join(os.homedir(), '.ssh', 'config');
+    const profiles = [];
+    const seen = new Set();
+
+    for (const entry of parseOpenSSHConfig(configFile)) {
+      const alias = entry.alias;
+      if (seen.has(alias)) {
+        continue;
+      }
+      seen.add(alias);
+
+      const options = entry.options;
+      const host = options.hostname || alias;
+      const port = Number.parseInt(options.port || '22', 10) || 22;
+      const user = options.user || os.userInfo().username || 'root';
+      const identityFiles = (options.identityfile || []).map(expandHome);
+      let proxyCommand = substituteProxyCommand(options.proxycommand, host, port, user);
+      if (!proxyCommand && options.proxyjump && options.proxyjump.toLowerCase() !== 'none') {
+        proxyCommand = ['ssh', '-W', `${shellQuote(host)}:${port}`, shellQuote(options.proxyjump)].join(' ');
+      }
+
+      profiles.push({
+        id: `ssh:openssh:${alias.replace(/[^A-Za-z0-9_.:-]/g, '-')}`,
+        type: 'ssh',
+        name: `SSH: ${alias}`,
+        icon: 'fas fa-desktop',
+        disableDynamicTitle: true,
+        options: {
+          host,
+          port,
+          user,
+          auth: 'agent',
+          privateKeys: identityFiles,
+          proxyCommand,
+          agentForward: /^yes$/i.test(options.forwardagent || ''),
+        },
+      });
+    }
+
+    return profiles;
+  }
+}
+
+class UserVarMiddleware extends SessionMiddleware {
+  constructor(onUserVar) {
+    super();
+    this.onUserVar = onUserVar;
+    this.buffer = Buffer.alloc(0);
+  }
+
+  feedFromSession(data) {
+    const combined = Buffer.concat([this.buffer, data]);
+    this.scan(combined);
+    this.buffer = this.tail(combined);
+    super.feedFromSession(data);
+  }
+
+  scan(buffer) {
+    const text = buffer.toString('latin1');
+    const re = /\x1b\]1337;SetUserVar=([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z0-9+/=]*)(?:\x07|\x1b\\)/g;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      let value = '';
+      try {
+        value = Buffer.from(match[2], 'base64').toString('utf8');
+      } catch (_) {
+        value = '';
+      }
+      this.onUserVar(match[1], value);
+    }
+  }
+
+  tail(buffer) {
+    const text = buffer.toString('latin1');
+    const marker = '\x1b]1337;SetUserVar=';
+    const index = text.lastIndexOf(marker);
+    if (index === -1) {
+      return Buffer.alloc(0);
+    }
+    const rest = text.slice(index);
+    if (/(?:\x07|\x1b\\)/.test(rest)) {
+      return Buffer.alloc(0);
+    }
+    return Buffer.from(rest.slice(0, 4096), 'latin1');
+  }
+}
+
+function basenameFromCommand(commandLine) {
+  const command = splitWords(commandLine)[0];
+  if (!command) {
+    return null;
+  }
+  return path.basename(command).replace(/\.exe$/i, '');
+}
+
+function basenameFromPath(value) {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.replace(/\\/g, '/').replace(/\/$/, '');
+  if (!normalized || normalized === '/') {
+    return '~';
+  }
+  const home = os.homedir().replace(/\\/g, '/');
+  if (normalized === home) {
+    return '~';
+  }
+  return normalized.split('/').pop() || '~';
+}
+
+function formatStatus(profileName, visual) {
+  const now = new Date();
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const pad = value => String(value).padStart(2, '0');
+  const date = `${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${days[now.getDay()]} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  return `${profileName || 'default'}  ${date}  ${visual ? 'VISUAL' : 'NORMAL'}`;
+}
+
+function isEditableTarget(target) {
+  if (!target || !target.closest) {
+    return false;
+  }
+  if (target.closest('.xterm-helper-textarea')) {
+    return false;
+  }
+  if (target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) {
+    return true;
+  }
+  return false;
+}
+
+function isModifierKey(event) {
+  return ['Control', 'Shift', 'Alt', 'Meta'].includes(event.key);
+}
+
+function keyId(event) {
+  return event.code || event.key || String(event.keyCode || '');
+}
+
+function stopKeyEvent(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.stopImmediatePropagation) {
+    event.stopImmediatePropagation();
+  }
+}
+
+function isCtrlT(event) {
+  if (!event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+    return false;
+  }
+  return event.code === 'KeyT' || String(event.key || '').toLowerCase() === 't';
+}
+
+function normalizeLeaderKey(event) {
+  const code = event.code || '';
+  if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+    if (code === 'KeyT' || String(event.key || '').toLowerCase() === 't') {
+      return 'Ctrl-T';
+    }
+    if (code === 'KeyH') {
+      return 'Ctrl-H';
+    }
+    if (code === 'KeyL') {
+      return 'Ctrl-L';
+    }
+    return null;
+  }
+  if (event.ctrlKey || event.altKey || event.metaKey) {
+    return null;
+  }
+  if (code === 'Backslash' && event.shiftKey || event.key === '|') {
+    return '|';
+  }
+  if (code === 'Minus' && !event.shiftKey || event.key === '-') {
+    return '-';
+  }
+  if (code === 'Semicolon' && !event.shiftKey || event.key === ';') {
+    return ';';
+  }
+  if (code === 'BracketLeft' && !event.shiftKey || event.key === '[') {
+    return '[';
+  }
+  if (code.startsWith('Arrow')) {
+    return code.replace('Arrow', '');
+  }
+  if (/^Key[A-Z]$/.test(code)) {
+    const letter = code.slice(3);
+    return event.shiftKey ? letter : letter.toLowerCase();
+  }
+  if (typeof event.key === 'string' && event.key.length === 1) {
+    return event.shiftKey ? event.key.toUpperCase() : event.key.toLowerCase();
+  }
+  return null;
+}
+
+class WezTermCompatDecorator extends TerminalDecorator {
+  constructor() {
+    super();
+    this.states = new WeakMap();
+  }
+
+  attach(tab) {
+    const state = {
+      userVars: {},
+      bells: new Set(),
+      nativeTitle: tab.title || '',
+      computedTitle: null,
+      updatingTitle: false,
+      middlewareBySession: new WeakMap(),
+      cwdTitle: null,
+      lastCwdCheck: 0,
+      statusElement: null,
+      statusTimer: null,
+      leaderActive: false,
+      leaderTimer: null,
+      swallowedKeyups: new Set(),
+      onKeydown: null,
+      onKeyup: null,
+    };
+    this.states.set(tab, state);
+
+    const install = session => this.installMiddleware(tab, state, session);
+    if (tab.session) {
+      install(tab.session);
+    }
+    this.subscribeUntilDetached(tab, tab.sessionChanged$.subscribe(install));
+    this.subscribeUntilDetached(tab, tab.titleChange$.subscribe(title => {
+      if (!state.updatingTitle) {
+        state.nativeTitle = title;
+        this.refreshTitle(tab, state);
+      }
+    }));
+    this.subscribeUntilDetached(tab, tab.focused$.subscribe(() => this.clearBells(tab, state)));
+    if (tab.hostWindow?.windowFocused$) {
+      this.subscribeUntilDetached(tab, tab.hostWindow.windowFocused$.subscribe(() => {
+        if (tab.hasFocus) {
+          this.clearBells(tab, state);
+        }
+      }));
+    }
+    if (tab.hotkeys?.hotkey$) {
+      this.subscribeUntilDetached(tab, tab.hotkeys.hotkey$.subscribe(hotkey => this.handleHotkey(tab, state, hotkey)));
+    }
+
+    this.attachStatus(tab, state);
+    this.attachLeaderKeys(tab, state);
+    state.statusTimer = setInterval(() => {
+      this.updateCwdTitle(tab, state);
+      this.updateStatus(tab, state);
+    }, 1000);
+  }
+
+  detach(tab) {
+    const state = this.states.get(tab);
+    if (state) {
+      if (state.statusTimer) {
+        clearInterval(state.statusTimer);
+      }
+      if (state.statusElement?.parentElement) {
+        state.statusElement.parentElement.removeChild(state.statusElement);
+      }
+      this.detachLeaderKeys(state);
+    }
+    super.detach(tab);
+  }
+
+  getSettings(tab) {
+    return tab.config?.store?.weztermCompat || {};
+  }
+
+  installMiddleware(tab, state, session) {
+    if (!session || state.middlewareBySession.has(session)) {
+      return;
+    }
+    const middleware = new UserVarMiddleware((name, value) => this.onUserVar(tab, state, name, value));
+    session.middleware.unshift(middleware);
+    state.middlewareBySession.set(session, middleware);
+    this.updateCwdTitle(tab, state);
+  }
+
+  onUserVar(tab, state, name, value) {
+    state.userVars[name] = value;
+    if (name === 'BELL') {
+      if (value) {
+        if (tab.hasFocus && typeof document !== 'undefined' && document.hasFocus()) {
+          state.bells.clear();
+        } else {
+          state.bells.add(value);
+        }
+      } else {
+        state.bells.clear();
+      }
+    }
+    this.refreshTitle(tab, state);
+  }
+
+  resolveTitle(state) {
+    const vars = state.userVars;
+    const bells = [...state.bells].join('');
+    let base = null;
+
+    if (vars.WEZTERM_IN_TMUX === '1' && vars.TMUX_SESSION) {
+      base = `tmux ${vars.TMUX_SESSION}`;
+    }
+    if (!base && vars.WEZTERM_PROG) {
+      base = basenameFromCommand(vars.WEZTERM_PROG);
+    }
+    if (!base && state.nativeTitle && !/^(Terminal|wslhost|conhost)$/i.test(state.nativeTitle)) {
+      base = state.nativeTitle;
+    }
+    if (!base && state.cwdTitle) {
+      base = state.cwdTitle;
+    }
+    if (!base) {
+      base = 'Terminal';
+    }
+
+    return `${bells ? bells + ' ' : ''}${base}`;
+  }
+
+  refreshTitle(tab, state) {
+    const title = this.resolveTitle(state);
+    if (title === state.computedTitle) {
+      return;
+    }
+    state.computedTitle = title;
+    state.updatingTitle = true;
+    try {
+      tab.setTitle(title);
+    } finally {
+      state.updatingTitle = false;
+    }
+  }
+
+  clearBells(tab, state) {
+    if (!state.bells.size) {
+      return;
+    }
+    state.bells.clear();
+    this.refreshTitle(tab, state);
+  }
+
+  async updateCwdTitle(tab, state) {
+    const now = Date.now();
+    if (now - state.lastCwdCheck < 2500) {
+      return;
+    }
+    state.lastCwdCheck = now;
+    try {
+      if (tab.session?.supportsWorkingDirectory?.()) {
+        const cwd = await tab.session.getWorkingDirectory();
+        const title = basenameFromPath(cwd);
+        if (title && title !== state.cwdTitle) {
+          state.cwdTitle = title;
+          this.refreshTitle(tab, state);
+        }
+      }
+    } catch (_) {
+      // Working directory lookup is best effort.
+    }
+  }
+
+  attachLeaderKeys(tab, state) {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    state.onKeydown = event => this.handleLeaderKeydown(tab, state, event);
+    state.onKeyup = event => this.handleLeaderKeyup(tab, state, event);
+    document.addEventListener('keydown', state.onKeydown, true);
+    document.addEventListener('keyup', state.onKeyup, true);
+  }
+
+  detachLeaderKeys(state) {
+    this.clearLeader(state);
+    if (typeof document !== 'undefined') {
+      if (state.onKeydown) {
+        document.removeEventListener('keydown', state.onKeydown, true);
+      }
+      if (state.onKeyup) {
+        document.removeEventListener('keyup', state.onKeyup, true);
+      }
+    }
+    state.swallowedKeyups.clear();
+  }
+
+  shouldHandleLeaderEvent(tab, event) {
+    const host = tab.element?.nativeElement;
+    if (!host || !event.target || !host.contains(event.target)) {
+      return false;
+    }
+    if (isEditableTarget(event.target)) {
+      return false;
+    }
+    return true;
+  }
+
+  activateLeader(tab, state) {
+    this.clearLeader(state);
+    state.leaderActive = true;
+    const timeout = Number(this.getSettings(tab).leaderTimeout || 1000);
+    state.leaderTimer = setTimeout(() => {
+      this.clearLeader(state);
+      this.updateStatus(tab, state);
+    }, timeout > 0 ? timeout : 1000);
+    this.updateStatus(tab, state);
+  }
+
+  clearLeader(state) {
+    state.leaderActive = false;
+    if (state.leaderTimer) {
+      clearTimeout(state.leaderTimer);
+      state.leaderTimer = null;
+    }
+  }
+
+  handleLeaderKeydown(tab, state, event) {
+    if (!this.shouldHandleLeaderEvent(tab, event)) {
+      return;
+    }
+    if (!tab.hasFocus && !state.leaderActive) {
+      return;
+    }
+
+    if (state.leaderActive) {
+      stopKeyEvent(event);
+      state.swallowedKeyups.add(keyId(event));
+      if (isModifierKey(event) || event.repeat) {
+        return;
+      }
+      const key = normalizeLeaderKey(event);
+      this.clearLeader(state);
+      this.runLeaderAction(tab, state, key);
+      this.updateStatus(tab, state);
+      return;
+    }
+
+    if (isCtrlT(event)) {
+      stopKeyEvent(event);
+      state.swallowedKeyups.add(keyId(event));
+      this.activateLeader(tab, state);
+    }
+  }
+
+  handleLeaderKeyup(tab, state, event) {
+    if (!this.shouldHandleLeaderEvent(tab, event)) {
+      return;
+    }
+    const id = keyId(event);
+    if (state.swallowedKeyups.has(id) || state.leaderActive && (isCtrlT(event) || isModifierKey(event))) {
+      stopKeyEvent(event);
+      state.swallowedKeyups.delete(id);
+      this.updateStatus(tab, state);
+    }
+  }
+
+  runLeaderAction(tab, state, key) {
+    switch (key) {
+      case 'Ctrl-T':
+        tab.sendInput('\x14');
+        break;
+      case '|':
+        this.openSplit(tab, 'r');
+        break;
+      case '-':
+        this.openSplit(tab, 'b');
+        break;
+      case 'h':
+        this.navigatePane(tab, 'l');
+        break;
+      case 'j':
+        this.navigatePane(tab, 'b');
+        break;
+      case 'k':
+        this.navigatePane(tab, 't');
+        break;
+      case 'l':
+        this.navigatePane(tab, 'r');
+        break;
+      case 'Ctrl-H':
+      case 'p':
+        tab.app?.previousTab?.();
+        break;
+      case 'Ctrl-L':
+      case 'n':
+        tab.app?.nextTab?.();
+        break;
+      case 'H':
+      case 'Left':
+        this.resizePane(tab, 'dh');
+        break;
+      case 'J':
+      case 'Down':
+        this.resizePane(tab, 'v');
+        break;
+      case 'K':
+      case 'Up':
+        this.resizePane(tab, 'dv');
+        break;
+      case 'L':
+      case 'Right':
+        this.resizePane(tab, 'h');
+        break;
+      case ';':
+        this.emitHotkey(tab, 'command-selector');
+        break;
+      case 'c':
+        this.openDuplicateTab(tab);
+        break;
+      case 'z':
+        this.toggleMaximizePane(tab);
+        break;
+      case 'x':
+        this.closePane(tab);
+        break;
+      case 'r':
+        tab.hostWindow?.reload?.();
+        break;
+      case 'y':
+        this.openYaziSplit(tab, state);
+        break;
+      case '[':
+        break;
+    }
+  }
+
+  getSplitTab(tab) {
+    return tab.parent?.splitTab ? tab.parent : tab.app?.getParentTab?.(tab);
+  }
+
+  async openSplit(tab, dir) {
+    const splitTab = this.getSplitTab(tab);
+    if (!splitTab?.splitTab) {
+      return null;
+    }
+    return splitTab.splitTab(tab, dir);
+  }
+
+  navigatePane(tab, dir) {
+    const splitTab = this.getSplitTab(tab);
+    splitTab?.navigate?.(dir);
+  }
+
+  resizePane(tab, dir) {
+    const splitTab = this.getSplitTab(tab);
+    splitTab?.resizePane?.(dir);
+  }
+
+  toggleMaximizePane(tab) {
+    const splitTab = this.getSplitTab(tab);
+    if (!splitTab?.maximize) {
+      return;
+    }
+    if (splitTab.getMaximizedTab?.()) {
+      splitTab.maximize(null);
+    } else if ((splitTab.getAllTabs?.() || []).length > 1) {
+      splitTab.maximize(tab);
+    }
+  }
+
+  closePane(tab) {
+    const splitTab = this.getSplitTab(tab);
+    if (!splitTab) {
+      return;
+    }
+    tab.destroy();
+  }
+
+  async openDuplicateTab(tab) {
+    const app = tab.app;
+    const duplicate = await app?.tabsService?.duplicate?.(tab);
+    if (duplicate) {
+      app.wrapAndAddTab?.(duplicate);
+    } else if (app?.activeTab) {
+      app.duplicateTab?.(app.activeTab);
+    }
+  }
+
+  emitHotkey(tab, hotkey) {
+    tab.hotkeys?._hotkey?.next?.(hotkey);
+  }
+
+  attachStatus(tab, state) {
+    if (this.getSettings(tab).statusOverlay === false) {
+      return;
+    }
+    const host = tab.element?.nativeElement;
+    if (!host || typeof document === 'undefined' || !document.createElement) {
+      return;
+    }
+    if (typeof getComputedStyle !== 'undefined' && getComputedStyle(host).position === 'static') {
+      host.style.position = 'relative';
+    }
+    const element = document.createElement('div');
+    element.className = 'tabby-wezterm-status';
+    host.appendChild(element);
+    state.statusElement = element;
+    this.updateStatus(tab, state);
+  }
+
+  updateStatus(tab, state) {
+    if (!state.statusElement) {
+      return;
+    }
+    const hasSelection = !!tab.frontend?.getSelection?.();
+    const visual = !!tab.showSearchPanel || hasSelection;
+    state.statusElement.textContent = state.leaderActive ? 'PREFIX' : formatStatus(tab.profile?.name, visual);
+  }
+
+  handleHotkey(tab, state, hotkey) {
+    if (!tab.hasFocus) {
+      return;
+    }
+    if (hotkey === 'tabby-wezterm-compat.send-ctrl-t') {
+      tab.sendInput('\x14');
+    }
+    if (hotkey === 'tabby-wezterm-compat.yazi-split') {
+      this.openYaziSplit(tab, state);
+    }
+  }
+
+  async openYaziSplit(tab, state) {
+    const command = this.getSettings(tab).yaziCommand || 'yazi';
+    let target = await this.openSplit(tab, 'b');
+    target = target || tab;
+    const run = () => target.sendInput(`${command}\r`);
+    if (target.frontendIsReady) {
+      setTimeout(run, 250);
+    } else if (target.frontendReady$?.subscribe) {
+      const sub = target.frontendReady$.subscribe(() => {
+        sub.unsubscribe();
+        setTimeout(run, 250);
+      });
+    } else {
+      setTimeout(run, 500);
+    }
+  }
+}
+
+let InjectableWezTermCompatDecorator = WezTermCompatDecorator;
+InjectableWezTermCompatDecorator = __decorate([
+  Injectable(),
+], InjectableWezTermCompatDecorator);
+
+const providers = [
+  { provide: ConfigProvider, useClass: WezTermCompatConfigProvider, multi: true },
+  { provide: HotkeyProvider, useClass: WezTermCompatHotkeyProvider, multi: true },
+  { provide: TerminalDecorator, useClass: InjectableWezTermCompatDecorator, multi: true },
+];
+
+if (SSHProfileImporter) {
+  providers.push({ provide: SSHProfileImporter, useClass: OpenSSHConfigImporter, multi: true });
+}
+
+let WezTermCompatModule = class WezTermCompatModule {};
+WezTermCompatModule = __decorate([
+  NgModule({
+    imports: [
+      TabbyCoreModule,
+    ],
+    providers,
+  }),
+], WezTermCompatModule);
+
+module.exports = {
+  default: WezTermCompatModule,
+};

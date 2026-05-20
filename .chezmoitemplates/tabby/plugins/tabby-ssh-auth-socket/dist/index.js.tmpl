@@ -1,0 +1,1075 @@
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory(require("@angular/common"), require("@angular/core"), require("@angular/forms"), require("fs"), require("net"), require("os"), require("path"), require("tabby-core"), require("tabby-settings"));
+	else if(typeof define === 'function' && define.amd)
+		define(["@angular/common", "@angular/core", "@angular/forms", "fs", "net", "os", "path", "tabby-core", "tabby-settings"], factory);
+	else {
+		var a = typeof exports === 'object' ? factory(require("@angular/common"), require("@angular/core"), require("@angular/forms"), require("fs"), require("net"), require("os"), require("path"), require("tabby-core"), require("tabby-settings")) : factory(root["@angular/common"], root["@angular/core"], root["@angular/forms"], root["fs"], root["net"], root["os"], root["path"], root["tabby-core"], root["tabby-settings"]);
+		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
+	}
+})(global, (__WEBPACK_EXTERNAL_MODULE__848__, __WEBPACK_EXTERNAL_MODULE__900__, __WEBPACK_EXTERNAL_MODULE__161__, __WEBPACK_EXTERNAL_MODULE__89__, __WEBPACK_EXTERNAL_MODULE__548__, __WEBPACK_EXTERNAL_MODULE__44__, __WEBPACK_EXTERNAL_MODULE__56__, __WEBPACK_EXTERNAL_MODULE__315__, __WEBPACK_EXTERNAL_MODULE__663__) => {
+return /******/ (() => { // webpackBootstrap
+/******/ 	var __webpack_modules__ = ({
+
+/***/ 340:
+/*!**********************************!*\
+  !*** ./src/authSocketService.ts ***!
+  \**********************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SSHAuthSocketService = void 0;
+const core_1 = __webpack_require__(/*! @angular/core */ 900);
+const tabby_core_1 = __webpack_require__(/*! tabby-core */ 315);
+const fs = __importStar(__webpack_require__(/*! fs */ 89));
+const sshConfigParser_1 = __webpack_require__(/*! ./sshConfigParser */ 628);
+let SSHAuthSocketService = class SSHAuthSocketService {
+    constructor(config, log) {
+        this.config = config;
+        this.logger = log.create('ssh-auth-socket');
+        this.parser = new sshConfigParser_1.SSHConfigParser();
+        // Save original SSH_AUTH_SOCK value
+        this.originalSocketPath = process.env.SSH_AUTH_SOCK;
+        // Wait for config to be ready before applying socket path
+        this.config.ready$.toPromise().then(() => {
+            // Check if plugin is disabled in plugin blacklist
+            if (this.config.store.pluginBlacklist?.includes('tabby-ssh-auth-socket')) {
+                this.logger.info('SSH Auth Socket plugin is disabled in plugin settings');
+                return;
+            }
+            this.applySocketPath();
+            // Subscribe to configuration changes
+            this.config.changed$.subscribe(() => {
+                this.applySocketPath();
+            });
+        });
+    }
+    applySocketPath() {
+        if (!this.config.store || !this.config.store.sshAuthSocket) {
+            return;
+        }
+        // Check if plugin is disabled in plugin blacklist
+        if (this.config.store.pluginBlacklist?.includes('tabby-ssh-auth-socket')) {
+            this.logger.info('SSH Auth Socket plugin is disabled in plugin settings');
+            return;
+        }
+        const socketPath = this.config.store.sshAuthSocket.socketPath;
+        if (!socketPath) {
+            // Clear SSH_AUTH_SOCK when field is empty
+            delete process.env.SSH_AUTH_SOCK;
+            this.logger.info('SSH_AUTH_SOCK cleared');
+            return;
+        }
+        const expandedPath = this.parser.expandPath(socketPath);
+        // Check if socket exists
+        if (this.checkSocketExists(expandedPath)) {
+            process.env.SSH_AUTH_SOCK = expandedPath;
+            this.logger.info(`SSH_AUTH_SOCK set to: ${expandedPath}`);
+        }
+        else {
+            this.logger.warn(`Socket not found: ${expandedPath}`);
+            // Still set it as user configured it
+            process.env.SSH_AUTH_SOCK = expandedPath;
+            this.logger.info(`SSH_AUTH_SOCK set to: ${expandedPath} (socket not found)`);
+        }
+    }
+    checkSocketExists(socketPath) {
+        try {
+            const stats = fs.statSync(socketPath);
+            return stats.isSocket();
+        }
+        catch {
+            return false;
+        }
+    }
+    async detectSockets() {
+        return await this.parser.findKnownAgentSockets();
+    }
+    async testSocket(socketPath) {
+        const expandedPath = this.parser.expandPath(socketPath);
+        // First check if file exists and is a socket
+        if (!this.checkSocketExists(expandedPath)) {
+            return false;
+        }
+        // Try to connect to the socket
+        // This is a basic test - just check if we can establish connection
+        return new Promise((resolve) => {
+            const net = __webpack_require__(/*! net */ 548);
+            const client = net.createConnection(expandedPath);
+            client.on('connect', () => {
+                client.end();
+                resolve(true);
+            });
+            client.on('error', () => {
+                resolve(false);
+            });
+            // Timeout after 1 second
+            setTimeout(() => {
+                client.destroy();
+                resolve(false);
+            }, 1000);
+        });
+    }
+    getCurrentSocketPath() {
+        return process.env.SSH_AUTH_SOCK;
+    }
+    isEnabled() {
+        return this.config.store.sshAuthSocket?.enabled === true;
+    }
+    getConfiguredPath() {
+        return this.config.store.sshAuthSocket?.socketPath;
+    }
+    async autoDetectFromSSHConfig() {
+        const sockets = await this.parser.parseSSHConfig();
+        // Return the first valid socket found
+        for (const socket of sockets) {
+            const expandedPath = this.parser.expandPath(socket);
+            if (this.checkSocketExists(expandedPath)) {
+                return socket;
+            }
+        }
+        // If no valid socket found, return the first one anyway
+        return sockets.length > 0 ? sockets[0] : null;
+    }
+};
+SSHAuthSocketService.ctorParameters = () => [
+    { type: tabby_core_1.ConfigService },
+    { type: tabby_core_1.LogService }
+];
+SSHAuthSocketService = __decorate([
+    (0, core_1.Injectable)({ providedIn: 'root' }),
+    __metadata("design:paramtypes", [tabby_core_1.ConfigService,
+        tabby_core_1.LogService])
+], SSHAuthSocketService);
+exports.SSHAuthSocketService = SSHAuthSocketService;
+
+
+/***/ }),
+
+/***/ 396:
+/*!*************************************************!*\
+  !*** ./src/components/settingsTab.component.ts ***!
+  \*************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SSHAuthSocketSettingsComponent = void 0;
+const core_1 = __webpack_require__(/*! @angular/core */ 900);
+const tabby_core_1 = __webpack_require__(/*! tabby-core */ 315);
+const authSocketService_1 = __webpack_require__(/*! ../authSocketService */ 340);
+let SSHAuthSocketSettingsComponent = class SSHAuthSocketSettingsComponent {
+    constructor(config, authSocketService, notifications) {
+        this.config = config;
+        this.authSocketService = authSocketService;
+        this.notifications = notifications;
+        this.testResult = null;
+        this.testing = false;
+    }
+    async ngOnInit() {
+        // Initialize config if not exists
+        if (!this.config.store.sshAuthSocket) {
+            this.config.store.sshAuthSocket = {
+                socketPath: '',
+            };
+        }
+    }
+    async importFromConfig() {
+        try {
+            const detectedPath = await this.authSocketService.autoDetectFromSSHConfig();
+            if (detectedPath && this.config.store.sshAuthSocket) {
+                this.config.store.sshAuthSocket.socketPath = detectedPath;
+                this.config.save();
+                this.notifications.notice(`Imported socket from SSH config: ${detectedPath}`);
+            }
+            else {
+                this.notifications.info('No socket path found in ~/.ssh/config');
+            }
+        }
+        catch (error) {
+            this.notifications.error(`Failed to parse SSH config: ${error}`);
+        }
+    }
+    async testConnection() {
+        this.testing = true;
+        this.testResult = null;
+        const socketPath = this.config.store.sshAuthSocket?.socketPath;
+        if (!socketPath) {
+            this.notifications.error('No socket path configured');
+            this.testing = false;
+            return;
+        }
+        try {
+            const success = await this.authSocketService.testSocket(socketPath);
+            if (success) {
+                this.testResult = 'success';
+                this.notifications.notice('Successfully connected to SSH agent');
+            }
+            else {
+                this.testResult = 'failed';
+                this.notifications.error('Failed to connect to SSH agent');
+            }
+        }
+        catch (error) {
+            this.testResult = 'failed';
+            this.notifications.error(`Test failed: ${error}`);
+        }
+        finally {
+            this.testing = false;
+        }
+    }
+};
+SSHAuthSocketSettingsComponent.ctorParameters = () => [
+    { type: tabby_core_1.ConfigService },
+    { type: authSocketService_1.SSHAuthSocketService },
+    { type: tabby_core_1.NotificationsService }
+];
+SSHAuthSocketSettingsComponent = __decorate([
+    (0, core_1.Component)({
+        selector: 'ssh-auth-socket-settings',
+        template: __webpack_require__(/*! ./settingsTab.component.pug?ngResource */ 724),
+    }),
+    __metadata("design:paramtypes", [tabby_core_1.ConfigService,
+        authSocketService_1.SSHAuthSocketService,
+        tabby_core_1.NotificationsService])
+], SSHAuthSocketSettingsComponent);
+exports.SSHAuthSocketSettingsComponent = SSHAuthSocketSettingsComponent;
+
+
+/***/ }),
+
+/***/ 72:
+/*!***********************!*\
+  !*** ./src/config.ts ***!
+  \***********************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SSHAuthSocketConfigProvider = void 0;
+const tabby_core_1 = __webpack_require__(/*! tabby-core */ 315);
+class SSHAuthSocketConfigProvider extends tabby_core_1.ConfigProvider {
+    constructor() {
+        super(...arguments);
+        this.defaults = {
+            sshAuthSocket: {
+                socketPath: '',
+            }
+        };
+        this.platformDefaults = {};
+    }
+}
+exports.SSHAuthSocketConfigProvider = SSHAuthSocketConfigProvider;
+
+
+/***/ }),
+
+/***/ 856:
+/*!**********************!*\
+  !*** ./src/index.ts ***!
+  \**********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __webpack_require__(/*! @angular/core */ 900);
+const common_1 = __webpack_require__(/*! @angular/common */ 848);
+const forms_1 = __webpack_require__(/*! @angular/forms */ 161);
+const tabby_core_1 = __importStar(__webpack_require__(/*! tabby-core */ 315));
+const tabby_settings_1 = __webpack_require__(/*! tabby-settings */ 663);
+const config_1 = __webpack_require__(/*! ./config */ 72);
+const settings_1 = __webpack_require__(/*! ./settings */ 950);
+const settingsTab_component_1 = __webpack_require__(/*! ./components/settingsTab.component */ 396);
+const authSocketService_1 = __webpack_require__(/*! ./authSocketService */ 340);
+let SSHAuthSocketModule = class SSHAuthSocketModule {
+    // Force service initialization on module load
+    constructor(_service) { }
+};
+SSHAuthSocketModule.ctorParameters = () => [
+    { type: authSocketService_1.SSHAuthSocketService, decorators: [{ type: core_1.Inject, args: [authSocketService_1.SSHAuthSocketService,] }] }
+];
+SSHAuthSocketModule = __decorate([
+    (0, core_1.NgModule)({
+        imports: [
+            common_1.CommonModule,
+            forms_1.FormsModule,
+            tabby_core_1.default,
+        ],
+        providers: [
+            { provide: tabby_core_1.ConfigProvider, useClass: config_1.SSHAuthSocketConfigProvider, multi: true },
+            { provide: tabby_settings_1.SettingsTabProvider, useClass: settings_1.SSHAuthSocketSettingsTabProvider, multi: true },
+            authSocketService_1.SSHAuthSocketService,
+        ],
+        declarations: [
+            settingsTab_component_1.SSHAuthSocketSettingsComponent,
+        ],
+    }),
+    __metadata("design:paramtypes", [authSocketService_1.SSHAuthSocketService])
+], SSHAuthSocketModule);
+exports["default"] = SSHAuthSocketModule;
+
+
+/***/ }),
+
+/***/ 950:
+/*!*************************!*\
+  !*** ./src/settings.ts ***!
+  \*************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SSHAuthSocketSettingsTabProvider = void 0;
+const core_1 = __webpack_require__(/*! @angular/core */ 900);
+const tabby_settings_1 = __webpack_require__(/*! tabby-settings */ 663);
+const settingsTab_component_1 = __webpack_require__(/*! ./components/settingsTab.component */ 396);
+let SSHAuthSocketSettingsTabProvider = class SSHAuthSocketSettingsTabProvider extends tabby_settings_1.SettingsTabProvider {
+    constructor() {
+        super(...arguments);
+        this.id = 'ssh-auth-socket';
+        this.icon = 'key';
+        this.title = 'SSH Auth Socket';
+    }
+    getComponentType() {
+        return settingsTab_component_1.SSHAuthSocketSettingsComponent;
+    }
+};
+SSHAuthSocketSettingsTabProvider = __decorate([
+    (0, core_1.Injectable)()
+], SSHAuthSocketSettingsTabProvider);
+exports.SSHAuthSocketSettingsTabProvider = SSHAuthSocketSettingsTabProvider;
+
+
+/***/ }),
+
+/***/ 628:
+/*!********************************!*\
+  !*** ./src/sshConfigParser.ts ***!
+  \********************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SSHConfigParser = void 0;
+const fs = __importStar(__webpack_require__(/*! fs */ 89));
+const path = __importStar(__webpack_require__(/*! path */ 56));
+const os = __importStar(__webpack_require__(/*! os */ 44));
+class SSHConfigParser {
+    async parseSSHConfig() {
+        const configPath = path.join(os.homedir(), '.ssh', 'config');
+        const sockets = [];
+        try {
+            if (!fs.existsSync(configPath)) {
+                return sockets;
+            }
+            const content = await fs.promises.readFile(configPath, 'utf8');
+            // Parse IdentityAgent directives from SSH config
+            // Match both IdentityAgent and IDENTITYAGENT (case insensitive)
+            const regex = /^\s*IdentityAgent\s+(.+)$/gmi;
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                let socketPath = match[1].trim();
+                // Remove quotes if present
+                socketPath = socketPath.replace(/^["']|["']$/g, '');
+                // Expand ~ to home directory
+                if (socketPath.startsWith('~/')) {
+                    socketPath = path.join(os.homedir(), socketPath.slice(2));
+                }
+                else if (socketPath === '~') {
+                    socketPath = os.homedir();
+                }
+                // Expand environment variables like $HOME
+                socketPath = socketPath.replace(/\$([A-Z_][A-Z0-9_]*)/gi, (_, varName) => {
+                    return process.env[varName] || '';
+                });
+                // Only add valid, unique paths
+                if (socketPath && !sockets.includes(socketPath)) {
+                    sockets.push(socketPath);
+                }
+            }
+        }
+        catch (error) {
+            console.error('Error parsing SSH config:', error);
+        }
+        return sockets;
+    }
+    async findKnownAgentSockets() {
+        const agents = [];
+        // Known agent socket locations
+        const knownAgents = [
+            {
+                name: 'Secretive',
+                path: path.join(os.homedir(), 'Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh')
+            },
+            {
+                name: '1Password',
+                path: path.join(os.homedir(), 'Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock')
+            },
+            {
+                name: 'GPG Agent',
+                path: path.join(os.homedir(), '.gnupg/S.gpg-agent.ssh')
+            },
+            {
+                name: 'Default SSH Agent',
+                path: '/private/tmp/com.apple.launchd.*/Listeners'
+            }
+        ];
+        // First, add all known agents
+        for (const agent of knownAgents) {
+            // For patterns with wildcards, try to find actual socket
+            if (agent.path.includes('*')) {
+                const dir = path.dirname(agent.path);
+                const pattern = path.basename(agent.path);
+                try {
+                    if (fs.existsSync(dir)) {
+                        const files = await fs.promises.readdir(dir);
+                        for (const file of files) {
+                            if (file.match(pattern.replace('*', '.*'))) {
+                                const fullPath = path.join(dir, file, 'Listeners');
+                                if (await this.checkSocketExists(fullPath)) {
+                                    agents.push({
+                                        name: agent.name,
+                                        path: fullPath,
+                                        exists: true
+                                    });
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (error) {
+                    // Ignore errors for inaccessible directories
+                }
+            }
+            else {
+                const exists = await this.checkSocketExists(agent.path);
+                // Always show Secretive, show others only if they exist
+                if (agent.name === 'Secretive' || exists) {
+                    agents.push({
+                        name: agent.name,
+                        path: agent.path,
+                        exists
+                    });
+                }
+            }
+        }
+        // Then add any additional sockets from SSH config that weren't already added
+        try {
+            const configSockets = await this.parseSSHConfig();
+            for (const socketPath of configSockets) {
+                // Skip if already added
+                if (agents.some(a => a.path === socketPath)) {
+                    continue;
+                }
+                const exists = await this.checkSocketExists(socketPath);
+                agents.push({
+                    name: 'SSH Config',
+                    path: socketPath,
+                    exists
+                });
+            }
+        }
+        catch (error) {
+            console.error('Error parsing SSH config:', error);
+        }
+        return agents;
+    }
+    async checkSocketExists(socketPath) {
+        try {
+            const stats = await fs.promises.stat(socketPath);
+            // Check if it's a socket file
+            return stats.isSocket();
+        }
+        catch {
+            return false;
+        }
+    }
+    expandPath(socketPath) {
+        // Expand ~ to home directory
+        if (socketPath.startsWith('~/')) {
+            socketPath = path.join(os.homedir(), socketPath.slice(2));
+        }
+        else if (socketPath === '~') {
+            socketPath = os.homedir();
+        }
+        // Expand environment variables
+        socketPath = socketPath.replace(/\$([A-Z_][A-Z0-9_]*)/gi, (_, varName) => {
+            return process.env[varName] || '';
+        });
+        return socketPath;
+    }
+}
+exports.SSHConfigParser = SSHConfigParser;
+
+
+/***/ }),
+
+/***/ 724:
+/*!*************************************************************!*\
+  !*** ./src/components/settingsTab.component.pug?ngResource ***!
+  \*************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var req = __webpack_require__(/*! !!../node_modules/pug-loader/index.js??ruleSet[1].rules[3].use[1]!./src/components/settingsTab.component.pug?ngResource */ 631);
+module.exports = (req['default'] || req).apply(req, [])
+
+/***/ }),
+
+/***/ 631:
+/*!*****************************************************************************************************************************!*\
+  !*** ../node_modules/pug-loader/index.js??ruleSet[1].rules[3].use[1]!./src/components/settingsTab.component.pug?ngResource ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var pug = __webpack_require__(/*! !../../../node_modules/pug-runtime/index.js */ 757);
+
+function template(locals) {var pug_html = "", pug_mixins = {}, pug_interp;var pug_indent = [];
+pug_html = pug_html + "\n\u003Ch3\u003ESSH Auth Socket\u003C\u002Fh3\u003E\n\u003Cdiv class=\"alert alert-info mb-3\"\u003E\u003Ci class=\"fas fa-info-circle\"\u003E\u003C\u002Fi\u003E\u003Cspan class=\"ms-2\"\u003EConfigure a custom SSH authentication socket path for all SSH connections\u003C\u002Fspan\u003E\u003C\u002Fdiv\u003E\n\u003Cdiv class=\"form-line\"\u003E\n  \u003Cdiv class=\"header\"\u003E\n    \u003Cdiv class=\"title\"\u003ESocket Path\u003C\u002Fdiv\u003E\n    \u003Cdiv class=\"description\"\u003EPath to the SSH agent socket file\u003C\u002Fdiv\u003E\n  \u003C\u002Fdiv\u003E\n  \u003Cinput class=\"form-control\" type=\"text\" placeholder=\"\u002Fpath\u002Fto\u002Fssh\u002Fagent.sock\" [(ngModel)]=\"config.store.sshAuthSocket.socketPath\" (ngModelChange)=\"config.save()\" style=\"width: 100%; max-width: 800px;\"\u003E\n\u003C\u002Fdiv\u003E\n\u003Cdiv\u003E\n  \u003Cdiv class=\"mt-3\"\u003E\n    \u003Cdiv class=\"d-flex gap-2 flex-wrap\"\u003E\n      \u003Cbutton class=\"btn btn-secondary\" (click)=\"importFromConfig()\"\u003E\u003Ci class=\"fas fa-file-import\"\u003E\u003C\u002Fi\u003E\u003Cspan class=\"ms-1\"\u003EImport from ~\u002F.ssh\u002Fconfig\u003C\u002Fspan\u003E\u003C\u002Fbutton\u003E\n      \u003Cbutton class=\"btn btn-secondary\" (click)=\"testConnection()\" [disabled]=\"testing || !config.store.sshAuthSocket.socketPath\"\u003E\u003Ci class=\"fas fa-vial\" *ngIf=\"!testing\"\u003E\u003C\u002Fi\u003E\u003Ci class=\"fas fa-spinner fa-spin\" *ngIf=\"testing\"\u003E\u003C\u002Fi\u003E\u003Cspan class=\"ms-1\"\u003ETest Connection\u003C\u002Fspan\u003E\u003C\u002Fbutton\u003E\n    \u003C\u002Fdiv\u003E\n  \u003C\u002Fdiv\u003E\n  \u003Cdiv class=\"mt-3\" *ngIf=\"testResult\"\u003E\n    \u003Cdiv class=\"alert alert-success\" *ngIf=\"testResult === &quot;success&quot;\"\u003E\u003Ci class=\"fas fa-check-circle\"\u003E\u003C\u002Fi\u003E\u003Cspan class=\"ms-2\"\u003EConnection successful!\u003C\u002Fspan\u003E\u003C\u002Fdiv\u003E\n    \u003Cdiv class=\"alert alert-danger\" *ngIf=\"testResult === &quot;failed&quot;\"\u003E\u003Ci class=\"fas fa-times-circle\"\u003E\u003C\u002Fi\u003E\u003Cspan class=\"ms-2\"\u003EConnection failed. Please check the socket path.\u003C\u002Fspan\u003E\u003C\u002Fdiv\u003E\n  \u003C\u002Fdiv\u003E\n\u003C\u002Fdiv\u003E\n\u003Cdiv class=\"mt-4\"\u003E\n  \u003Ch5\u003ETips\u003C\u002Fh5\u003E\n  \u003Cul class=\"small text-muted\"\u003E\n    \u003Cli\u003EUse this plugin to configure SSH agents like Secretive, 1Password, or GPG\u003C\u002Fli\u003E\n    \u003Cli\u003EThe socket path can be found in your ~\u002F.ssh\u002Fconfig file under the IdentityAgent directive\u003C\u002Fli\u003E\n    \u003Cli\u003ECommon socket locations:\n      \u003Cul\u003E\n        \u003Cli\u003ESecretive: ~\u002FLibrary\u002FContainers\u002Fcom.maxgoedjen.Secretive.SecretAgent\u002FData\u002Fsocket.ssh\u003C\u002Fli\u003E\n        \u003Cli\u003E1Password: ~\u002FLibrary\u002FGroup Containers\u002F2BUA8C4S2C.com.1password\u002Ft\u002Fagent.sock\u003C\u002Fli\u003E\n        \u003Cli\u003EGPG: ~\u002F.gnupg\u002FS.gpg-agent.ssh\u003C\u002Fli\u003E\n      \u003C\u002Ful\u003E\n    \u003C\u002Fli\u003E\n    \u003Cli\u003EChanges take effect immediately for new SSH connections\u003C\u002Fli\u003E\n  \u003C\u002Ful\u003E\n\u003C\u002Fdiv\u003E";;return pug_html;};
+module.exports = template;
+
+/***/ }),
+
+/***/ 757:
+/*!********************************************!*\
+  !*** ../node_modules/pug-runtime/index.js ***!
+  \********************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+
+var pug_has_own_property = Object.prototype.hasOwnProperty;
+
+/**
+ * Merge two attribute objects giving precedence
+ * to values in object `b`. Classes are special-cased
+ * allowing for arrays and merging/joining appropriately
+ * resulting in a string.
+ *
+ * @param {Object} a
+ * @param {Object} b
+ * @return {Object} a
+ * @api private
+ */
+
+exports.merge = pug_merge;
+function pug_merge(a, b) {
+  if (arguments.length === 1) {
+    var attrs = a[0];
+    for (var i = 1; i < a.length; i++) {
+      attrs = pug_merge(attrs, a[i]);
+    }
+    return attrs;
+  }
+
+  for (var key in b) {
+    if (key === 'class') {
+      var valA = a[key] || [];
+      a[key] = (Array.isArray(valA) ? valA : [valA]).concat(b[key] || []);
+    } else if (key === 'style') {
+      var valA = pug_style(a[key]);
+      valA = valA && valA[valA.length - 1] !== ';' ? valA + ';' : valA;
+      var valB = pug_style(b[key]);
+      valB = valB && valB[valB.length - 1] !== ';' ? valB + ';' : valB;
+      a[key] = valA + valB;
+    } else {
+      a[key] = b[key];
+    }
+  }
+
+  return a;
+}
+
+/**
+ * Process array, object, or string as a string of classes delimited by a space.
+ *
+ * If `val` is an array, all members of it and its subarrays are counted as
+ * classes. If `escaping` is an array, then whether or not the item in `val` is
+ * escaped depends on the corresponding item in `escaping`. If `escaping` is
+ * not an array, no escaping is done.
+ *
+ * If `val` is an object, all the keys whose value is truthy are counted as
+ * classes. No escaping is done.
+ *
+ * If `val` is a string, it is counted as a class. No escaping is done.
+ *
+ * @param {(Array.<string>|Object.<string, boolean>|string)} val
+ * @param {?Array.<string>} escaping
+ * @return {String}
+ */
+exports.classes = pug_classes;
+function pug_classes_array(val, escaping) {
+  var classString = '',
+    className,
+    padding = '',
+    escapeEnabled = Array.isArray(escaping);
+  for (var i = 0; i < val.length; i++) {
+    className = pug_classes(val[i]);
+    if (!className) continue;
+    escapeEnabled && escaping[i] && (className = pug_escape(className));
+    classString = classString + padding + className;
+    padding = ' ';
+  }
+  return classString;
+}
+function pug_classes_object(val) {
+  var classString = '',
+    padding = '';
+  for (var key in val) {
+    if (key && val[key] && pug_has_own_property.call(val, key)) {
+      classString = classString + padding + key;
+      padding = ' ';
+    }
+  }
+  return classString;
+}
+function pug_classes(val, escaping) {
+  if (Array.isArray(val)) {
+    return pug_classes_array(val, escaping);
+  } else if (val && typeof val === 'object') {
+    return pug_classes_object(val);
+  } else {
+    return val || '';
+  }
+}
+
+/**
+ * Convert object or string to a string of CSS styles delimited by a semicolon.
+ *
+ * @param {(Object.<string, string>|string)} val
+ * @return {String}
+ */
+
+exports.style = pug_style;
+function pug_style(val) {
+  if (!val) return '';
+  if (typeof val === 'object') {
+    var out = '';
+    for (var style in val) {
+      /* istanbul ignore else */
+      if (pug_has_own_property.call(val, style)) {
+        out = out + style + ':' + val[style] + ';';
+      }
+    }
+    return out;
+  } else {
+    return val + '';
+  }
+}
+
+/**
+ * Render the given attribute.
+ *
+ * @param {String} key
+ * @param {String} val
+ * @param {Boolean} escaped
+ * @param {Boolean} terse
+ * @return {String}
+ */
+exports.attr = pug_attr;
+function pug_attr(key, val, escaped, terse) {
+  if (
+    val === false ||
+    val == null ||
+    (!val && (key === 'class' || key === 'style'))
+  ) {
+    return '';
+  }
+  if (val === true) {
+    return ' ' + (terse ? key : key + '="' + key + '"');
+  }
+  var type = typeof val;
+  if (
+    (type === 'object' || type === 'function') &&
+    typeof val.toJSON === 'function'
+  ) {
+    val = val.toJSON();
+  }
+  if (typeof val !== 'string') {
+    val = JSON.stringify(val);
+    if (!escaped && val.indexOf('"') !== -1) {
+      return ' ' + key + "='" + val.replace(/'/g, '&#39;') + "'";
+    }
+  }
+  if (escaped) val = pug_escape(val);
+  return ' ' + key + '="' + val + '"';
+}
+
+/**
+ * Render the given attributes object.
+ *
+ * @param {Object} obj
+ * @param {Object} terse whether to use HTML5 terse boolean attributes
+ * @return {String}
+ */
+exports.attrs = pug_attrs;
+function pug_attrs(obj, terse) {
+  var attrs = '';
+
+  for (var key in obj) {
+    if (pug_has_own_property.call(obj, key)) {
+      var val = obj[key];
+
+      if ('class' === key) {
+        val = pug_classes(val);
+        attrs = pug_attr(key, val, false, terse) + attrs;
+        continue;
+      }
+      if ('style' === key) {
+        val = pug_style(val);
+      }
+      attrs += pug_attr(key, val, false, terse);
+    }
+  }
+
+  return attrs;
+}
+
+/**
+ * Escape the given string of `html`.
+ *
+ * @param {String} html
+ * @return {String}
+ * @api private
+ */
+
+var pug_match_html = /["&<>]/;
+exports.escape = pug_escape;
+function pug_escape(_html) {
+  var html = '' + _html;
+  var regexResult = pug_match_html.exec(html);
+  if (!regexResult) return _html;
+
+  var result = '';
+  var i, lastIndex, escape;
+  for (i = regexResult.index, lastIndex = 0; i < html.length; i++) {
+    switch (html.charCodeAt(i)) {
+      case 34:
+        escape = '&quot;';
+        break;
+      case 38:
+        escape = '&amp;';
+        break;
+      case 60:
+        escape = '&lt;';
+        break;
+      case 62:
+        escape = '&gt;';
+        break;
+      default:
+        continue;
+    }
+    if (lastIndex !== i) result += html.substring(lastIndex, i);
+    lastIndex = i + 1;
+    result += escape;
+  }
+  if (lastIndex !== i) return result + html.substring(lastIndex, i);
+  else return result;
+}
+
+/**
+ * Re-throw the given `err` in context to the
+ * the pug in `filename` at the given `lineno`.
+ *
+ * @param {Error} err
+ * @param {String} filename
+ * @param {String} lineno
+ * @param {String} str original source
+ * @api private
+ */
+
+exports.rethrow = pug_rethrow;
+function pug_rethrow(err, filename, lineno, str) {
+  if (!(err instanceof Error)) throw err;
+  if ((typeof window != 'undefined' || !filename) && !str) {
+    err.message += ' on line ' + lineno;
+    throw err;
+  }
+  var context, lines, start, end;
+  try {
+    str = str || (__webpack_require__(/*! fs */ 89).readFileSync)(filename, {encoding: 'utf8'});
+    context = 3;
+    lines = str.split('\n');
+    start = Math.max(lineno - context, 0);
+    end = Math.min(lines.length, lineno + context);
+  } catch (ex) {
+    err.message +=
+      ' - could not read from ' + filename + ' (' + ex.message + ')';
+    pug_rethrow(err, null, lineno);
+    return;
+  }
+
+  // Error context
+  context = lines
+    .slice(start, end)
+    .map(function(line, i) {
+      var curr = i + start + 1;
+      return (curr == lineno ? '  > ' : '    ') + curr + '| ' + line;
+    })
+    .join('\n');
+
+  // Alter exception message
+  err.path = filename;
+  try {
+    err.message =
+      (filename || 'Pug') +
+      ':' +
+      lineno +
+      '\n' +
+      context +
+      '\n\n' +
+      err.message;
+  } catch (e) {}
+  throw err;
+}
+
+
+/***/ }),
+
+/***/ 848:
+/*!**********************************!*\
+  !*** external "@angular/common" ***!
+  \**********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__848__;
+
+/***/ }),
+
+/***/ 900:
+/*!********************************!*\
+  !*** external "@angular/core" ***!
+  \********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__900__;
+
+/***/ }),
+
+/***/ 161:
+/*!*********************************!*\
+  !*** external "@angular/forms" ***!
+  \*********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__161__;
+
+/***/ }),
+
+/***/ 89:
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__89__;
+
+/***/ }),
+
+/***/ 548:
+/*!**********************!*\
+  !*** external "net" ***!
+  \**********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__548__;
+
+/***/ }),
+
+/***/ 44:
+/*!*********************!*\
+  !*** external "os" ***!
+  \*********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__44__;
+
+/***/ }),
+
+/***/ 56:
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__56__;
+
+/***/ }),
+
+/***/ 315:
+/*!*****************************!*\
+  !*** external "tabby-core" ***!
+  \*****************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__315__;
+
+/***/ }),
+
+/***/ 663:
+/*!*********************************!*\
+  !*** external "tabby-settings" ***!
+  \*********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__663__;
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __webpack_require__(856);
+/******/ 	
+/******/ 	return __webpack_exports__;
+/******/ })()
+;
+});
+//# sourceMappingURL=index.js.map

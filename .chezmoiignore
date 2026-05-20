@@ -9,6 +9,16 @@ AppData/**
 **/*.cmd
 {{ end }}
 
+# ignore Linux Tabby config outside Linux
+{{ if ne .chezmoi.os "linux" }}
+.config/tabby/**
+{{ end }}
+
+# ignore macOS Tabby config outside macOS
+{{ if ne .chezmoi.os "darwin" }}
+Library/Application Support/tabby/**
+{{ end }}
+
 # ignore on Windows
 {{ if and (ne .chezmoi.os "darwin") (ne .chezmoi.os "linux") }}
 .config/1Password/
