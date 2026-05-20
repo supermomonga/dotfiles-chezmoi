@@ -63,7 +63,6 @@ class WezTermCompatConfigProvider extends ConfigProvider {
     this.defaults = {
       weztermCompat: {
         leaderTimeout: 1000,
-        statusOverlay: true,
         yaziCommand: 'yazi',
       },
       hotkeys: {
@@ -356,14 +355,6 @@ function basenameFromPath(value) {
   return normalized.split('/').pop() || '~';
 }
 
-function formatStatus(profileName, visual) {
-  const now = new Date();
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const pad = value => String(value).padStart(2, '0');
-  const date = `${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${days[now.getDay()]} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  return `${profileName || 'default'}  ${date}  ${visual ? 'VISUAL' : 'NORMAL'}`;
-}
-
 function isEditableTarget(target) {
   if (!target || !target.closest) {
     return false;
@@ -458,8 +449,7 @@ class WezTermCompatDecorator extends TerminalDecorator {
       middlewareBySession: new WeakMap(),
       cwdTitle: null,
       lastCwdCheck: 0,
-      statusElement: null,
-      statusTimer: null,
+      cwdTimer: null,
       leaderActive: false,
       leaderTimer: null,
       swallowedKeyups: new Set(),
@@ -491,22 +481,17 @@ class WezTermCompatDecorator extends TerminalDecorator {
       this.subscribeUntilDetached(tab, tab.hotkeys.hotkey$.subscribe(hotkey => this.handleHotkey(tab, state, hotkey)));
     }
 
-    this.attachStatus(tab, state);
     this.attachLeaderKeys(tab, state);
-    state.statusTimer = setInterval(() => {
+    state.cwdTimer = setInterval(() => {
       this.updateCwdTitle(tab, state);
-      this.updateStatus(tab, state);
     }, 1000);
   }
 
   detach(tab) {
     const state = this.states.get(tab);
     if (state) {
-      if (state.statusTimer) {
-        clearInterval(state.statusTimer);
-      }
-      if (state.statusElement?.parentElement) {
-        state.statusElement.parentElement.removeChild(state.statusElement);
+      if (state.cwdTimer) {
+        clearInterval(state.cwdTimer);
       }
       this.detachLeaderKeys(state);
     }
@@ -649,9 +634,7 @@ class WezTermCompatDecorator extends TerminalDecorator {
     const timeout = Number(this.getSettings(tab).leaderTimeout || 1000);
     state.leaderTimer = setTimeout(() => {
       this.clearLeader(state);
-      this.updateStatus(tab, state);
     }, timeout > 0 ? timeout : 1000);
-    this.updateStatus(tab, state);
   }
 
   clearLeader(state) {
@@ -679,7 +662,6 @@ class WezTermCompatDecorator extends TerminalDecorator {
       const key = normalizeLeaderKey(event);
       this.clearLeader(state);
       this.runLeaderAction(tab, state, key);
-      this.updateStatus(tab, state);
       return;
     }
 
@@ -698,7 +680,6 @@ class WezTermCompatDecorator extends TerminalDecorator {
     if (state.swallowedKeyups.has(id) || state.leaderActive && (isCtrlT(event) || isModifierKey(event))) {
       stopKeyEvent(event);
       state.swallowedKeyups.delete(id);
-      this.updateStatus(tab, state);
     }
   }
 
@@ -826,33 +807,6 @@ class WezTermCompatDecorator extends TerminalDecorator {
 
   emitHotkey(tab, hotkey) {
     tab.hotkeys?._hotkey?.next?.(hotkey);
-  }
-
-  attachStatus(tab, state) {
-    if (this.getSettings(tab).statusOverlay === false) {
-      return;
-    }
-    const host = tab.element?.nativeElement;
-    if (!host || typeof document === 'undefined' || !document.createElement) {
-      return;
-    }
-    if (typeof getComputedStyle !== 'undefined' && getComputedStyle(host).position === 'static') {
-      host.style.position = 'relative';
-    }
-    const element = document.createElement('div');
-    element.className = 'tabby-wezterm-status';
-    host.appendChild(element);
-    state.statusElement = element;
-    this.updateStatus(tab, state);
-  }
-
-  updateStatus(tab, state) {
-    if (!state.statusElement) {
-      return;
-    }
-    const hasSelection = !!tab.frontend?.getSelection?.();
-    const visual = !!tab.showSearchPanel || hasSelection;
-    state.statusElement.textContent = state.leaderActive ? 'PREFIX' : formatStatus(tab.profile?.name, visual);
   }
 
   handleHotkey(tab, state, hotkey) {

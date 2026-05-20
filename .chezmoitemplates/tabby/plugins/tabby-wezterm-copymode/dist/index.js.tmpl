@@ -1,0 +1,1062 @@
+'use strict';
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+  var c = arguments.length;
+  var r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc;
+  var d;
+  for (var i = decorators.length - 1; i >= 0; i--) {
+    d = decorators[i];
+    if (d) {
+      r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    }
+  }
+  if (c > 3 && r) {
+    Object.defineProperty(target, key, r);
+  }
+  return r;
+};
+
+const angularCore = require('@angular/core');
+const tabbyCore = require('tabby-core');
+const tabbyTerminal = require('tabby-terminal');
+
+const { NgModule, Injectable } = angularCore;
+const TabbyCoreModule = tabbyCore.default || tabbyCore;
+const ConfigProvider = tabbyCore.ConfigProvider;
+const HotkeyProvider = tabbyCore.HotkeyProvider;
+const TerminalDecorator = tabbyTerminal.TerminalDecorator;
+
+const MODE_NORMAL = null;
+const MODE_CELL = 'cell';
+const MODE_LINE = 'line';
+const MODE_BLOCK = 'block';
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function keyId(event) {
+  return event.code || event.key || String(event.keyCode || '');
+}
+
+function stopKeyEvent(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.stopImmediatePropagation) {
+    event.stopImmediatePropagation();
+  }
+}
+
+function isEditableTarget(target) {
+  if (!target || !target.closest) {
+    return false;
+  }
+  if (target.closest('.xterm-helper-textarea')) {
+    return false;
+  }
+  return !!target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
+}
+
+function isModifierKey(event) {
+  return ['Control', 'Shift', 'Alt', 'Meta'].includes(event.key);
+}
+
+function isCtrlT(event) {
+  if (!event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+    return false;
+  }
+  return event.code === 'KeyT' || String(event.key || '').toLowerCase() === 't';
+}
+
+function isCopyShortcut(event) {
+  const key = String(event.key || '').toLowerCase();
+  if (key !== 'c') {
+    return false;
+  }
+  if (event.metaKey && !event.ctrlKey && !event.altKey) {
+    return true;
+  }
+  return event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey;
+}
+
+function isOpenBracket(event) {
+  if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+    return false;
+  }
+  return event.code === 'BracketLeft' || event.key === '[';
+}
+
+function keyLabel(event) {
+  if (event.code && event.code.startsWith('Arrow')) {
+    return event.code.replace('Arrow', '');
+  }
+  if (event.code === 'PageUp' || event.key === 'PageUp') {
+    return 'PageUp';
+  }
+  if (event.code === 'PageDown' || event.key === 'PageDown') {
+    return 'PageDown';
+  }
+  if (event.code === 'Home' || event.key === 'Home') {
+    return 'Home';
+  }
+  if (event.code === 'End' || event.key === 'End') {
+    return 'End';
+  }
+  if (event.code === 'Escape' || event.key === 'Escape') {
+    return 'Escape';
+  }
+  if (event.code === 'Enter' || event.key === 'Enter') {
+    return 'Enter';
+  }
+  if (event.code === 'Tab' || event.key === 'Tab') {
+    return 'Tab';
+  }
+  if (typeof event.key === 'string' && event.key.length === 1) {
+    return event.key;
+  }
+  return event.key || event.code || '';
+}
+
+function resolveXterm(tab) {
+  const frontend = tab.frontend;
+  const candidates = [
+    frontend?.xterm,
+    frontend?.terminal,
+    frontend?._terminal,
+    frontend?._xterm,
+    frontend?.term,
+    frontend?._term,
+  ];
+  for (const candidate of candidates) {
+    if (candidate?.buffer?.active && typeof candidate.select === 'function') {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function lineText(xterm, line) {
+  if (!xterm?.buffer?.active || line < 0 || line >= xterm.buffer.active.length) {
+    return '';
+  }
+  const bufferLine = xterm.buffer.active.getLine(line);
+  if (!bufferLine) {
+    return '';
+  }
+  try {
+    return bufferLine.translateToString(true);
+  } catch (_) {
+    return '';
+  }
+}
+
+function cellAt(text, index) {
+  return index >= 0 && index < text.length ? text[index] : ' ';
+}
+
+function isWordChar(ch) {
+  return /[A-Za-z0-9_]/.test(ch);
+}
+
+function lineContentEnd(xterm, line) {
+  return clamp(lineText(xterm, line).length - 1, 0, Math.max(0, xterm.cols - 1));
+}
+
+function firstNonSpaceColumn(xterm, line) {
+  const text = lineText(xterm, line);
+  const match = text.match(/\S/);
+  return match ? clamp(match.index, 0, Math.max(0, xterm.cols - 1)) : 0;
+}
+
+function comparePoint(a, b) {
+  if (a.line !== b.line) {
+    return a.line - b.line;
+  }
+  return a.col - b.col;
+}
+
+function normalizeRange(anchor, cursor) {
+  return comparePoint(anchor, cursor) <= 0
+    ? { start: anchor, end: cursor }
+    : { start: cursor, end: anchor };
+}
+
+function sliceLineCells(xterm, line, startCol, endCol, padRight) {
+  const text = lineText(xterm, line);
+  if (!text && !padRight) {
+    return '';
+  }
+  const start = clamp(startCol, 0, Math.max(0, xterm.cols - 1));
+  const end = clamp(endCol, 0, Math.max(0, xterm.cols - 1));
+  const length = Math.max(0, end - start + 1);
+  const padded = padRight && text.length < end + 1 ? text.padEnd(end + 1, ' ') : text;
+  return padded.slice(start, start + length).replace(/\s+$/g, '');
+}
+
+function writeClipboard(text) {
+  if (!text) {
+    return Promise.resolve();
+  }
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  try {
+    const electron = require('electron');
+    const clipboard = electron.clipboard || electron.remote?.clipboard;
+    if (clipboard?.writeText) {
+      clipboard.writeText(text);
+      return Promise.resolve();
+    }
+  } catch (_) {
+    // Fall back to the browser API below.
+  }
+  if (typeof document !== 'undefined' && document.execCommand) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-10000px';
+    textarea.style.top = '-10000px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+  }
+  return Promise.resolve();
+}
+
+class WezTermCopyModeConfigProvider extends ConfigProvider {
+  constructor() {
+    super();
+    this.defaults = {
+      weztermCopyMode: {
+        leaderTimeout: 1000,
+        activateWithLeader: true,
+        statusOverlay: true,
+        scrollToBottomOnExit: true,
+      },
+      hotkeys: {
+        'tabby-wezterm-copymode': {
+          activate: [],
+        },
+      },
+    };
+  }
+}
+
+class WezTermCopyModeHotkeyProvider extends HotkeyProvider {
+  async provide() {
+    return [
+      {
+        id: 'tabby-wezterm-copymode.activate',
+        name: 'Activate WezTerm copy mode',
+      },
+    ];
+  }
+}
+
+class WezTermCopyModeDecorator extends TerminalDecorator {
+  constructor() {
+    super();
+    this.states = new WeakMap();
+  }
+
+  attach(tab) {
+    const state = {
+      mode: false,
+      selectionMode: MODE_NORMAL,
+      anchor: null,
+      cursor: null,
+      xterm: null,
+      overlay: null,
+      cursorElement: null,
+      blockLayer: null,
+      statusElement: null,
+      leaderPending: false,
+      leaderTimer: null,
+      pendingKey: null,
+      swallowedKeyups: new Set(),
+      onKeydown: null,
+      onKeyup: null,
+    };
+    this.states.set(tab, state);
+
+    if (tab.hotkeys?.hotkey$) {
+      this.subscribeUntilDetached(tab, tab.hotkeys.hotkey$.subscribe(hotkey => this.handleHotkey(tab, state, hotkey)));
+    }
+
+    this.attachKeys(tab, state);
+  }
+
+  detach(tab) {
+    const state = this.states.get(tab);
+    if (state) {
+      this.exitCopyMode(tab, state, { scrollToBottom: false });
+      this.detachKeys(state);
+    }
+    super.detach(tab);
+  }
+
+  getSettings(tab) {
+    return tab.config?.store?.weztermCopyMode || {};
+  }
+
+  attachKeys(tab, state) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    state.onKeydown = event => this.handleKeydown(tab, state, event);
+    state.onKeyup = event => this.handleKeyup(tab, state, event);
+    window.addEventListener('keydown', state.onKeydown, true);
+    window.addEventListener('keyup', state.onKeyup, true);
+  }
+
+  detachKeys(state) {
+    this.clearLeader(state);
+    if (typeof window !== 'undefined') {
+      if (state.onKeydown) {
+        window.removeEventListener('keydown', state.onKeydown, true);
+      }
+      if (state.onKeyup) {
+        window.removeEventListener('keyup', state.onKeyup, true);
+      }
+    }
+    state.swallowedKeyups.clear();
+  }
+
+  shouldHandleEvent(tab, event) {
+    const host = tab.element?.nativeElement;
+    if (!host || !event.target || !host.contains(event.target)) {
+      return false;
+    }
+    return !isEditableTarget(event.target);
+  }
+
+  handleHotkey(tab, state, hotkey) {
+    if (!tab.hasFocus) {
+      return;
+    }
+    if (hotkey === 'tabby-wezterm-copymode.activate') {
+      this.activateCopyMode(tab, state);
+    }
+  }
+
+  handleKeydown(tab, state, event) {
+    if (!this.shouldHandleEvent(tab, event)) {
+      return;
+    }
+
+    if (state.mode) {
+      stopKeyEvent(event);
+      state.swallowedKeyups.add(keyId(event));
+      if (!isModifierKey(event)) {
+        this.handleCopyModeKey(tab, state, event);
+      }
+      return;
+    }
+
+    if (!tab.hasFocus || this.getSettings(tab).activateWithLeader === false) {
+      return;
+    }
+
+    if (isCtrlT(event)) {
+      this.markLeaderPending(tab, state);
+      return;
+    }
+
+    if (state.leaderPending && isOpenBracket(event)) {
+      this.clearLeader(state);
+      this.activateCopyMode(tab, state);
+      return;
+    }
+
+    if (state.leaderPending && !isModifierKey(event)) {
+      this.clearLeader(state);
+    }
+  }
+
+  handleKeyup(tab, state, event) {
+    if (!this.shouldHandleEvent(tab, event)) {
+      return;
+    }
+    const id = keyId(event);
+    if (state.swallowedKeyups.has(id)) {
+      stopKeyEvent(event);
+      state.swallowedKeyups.delete(id);
+    }
+  }
+
+  markLeaderPending(tab, state) {
+    this.clearLeader(state);
+    state.leaderPending = true;
+    const timeout = Number(this.getSettings(tab).leaderTimeout || 1000);
+    state.leaderTimer = setTimeout(() => this.clearLeader(state), timeout > 0 ? timeout : 1000);
+  }
+
+  clearLeader(state) {
+    state.leaderPending = false;
+    if (state.leaderTimer) {
+      clearTimeout(state.leaderTimer);
+      state.leaderTimer = null;
+    }
+  }
+
+  activateCopyMode(tab, state) {
+    const xterm = resolveXterm(tab);
+    if (!xterm?.buffer?.active) {
+      return;
+    }
+
+    const buffer = xterm.buffer.active;
+    state.mode = true;
+    state.selectionMode = MODE_NORMAL;
+    state.anchor = null;
+    state.pendingKey = null;
+    state.xterm = xterm;
+    state.cursor = this.clampPoint(xterm, {
+      line: buffer.baseY + buffer.cursorY,
+      col: buffer.cursorX,
+    });
+
+    this.ensureOverlay(tab, state);
+    this.scrollCursorIntoView(state);
+    this.render(tab, state);
+  }
+
+  exitCopyMode(tab, state, options = {}) {
+    if (!state.mode && !state.overlay) {
+      return;
+    }
+    const xterm = state.xterm || resolveXterm(tab);
+    if (options.scrollToBottom && xterm?.scrollToBottom) {
+      xterm.scrollToBottom();
+    }
+    this.clearSelection(state);
+    this.removeOverlay(state);
+    state.mode = false;
+    state.selectionMode = MODE_NORMAL;
+    state.anchor = null;
+    state.cursor = null;
+    state.xterm = null;
+    state.pendingKey = null;
+  }
+
+  handleCopyModeKey(tab, state, event) {
+    if (isCopyShortcut(event) || (!event.ctrlKey && !event.altKey && !event.metaKey && keyLabel(event) === 'y')) {
+      this.copyAndExit(tab, state);
+      return;
+    }
+
+    if (event.ctrlKey && !event.altKey && !event.metaKey) {
+      const ctrl = String(event.key || '').toLowerCase();
+      if (ctrl === 'c' || ctrl === 'g') {
+        this.exitCopyMode(tab, state, { scrollToBottom: this.getSettings(tab).scrollToBottomOnExit !== false });
+        return;
+      }
+      if (ctrl === 'u') {
+        this.moveByPage(state, -0.5);
+        this.render(tab, state);
+        return;
+      }
+      if (ctrl === 'd') {
+        this.moveByPage(state, 0.5);
+        this.render(tab, state);
+        return;
+      }
+      if (ctrl === 'b') {
+        this.moveByPage(state, -1);
+        this.render(tab, state);
+        return;
+      }
+      if (ctrl === 'f') {
+        this.moveByPage(state, 1);
+        this.render(tab, state);
+        return;
+      }
+      if (ctrl === 'v') {
+        this.setSelectionMode(state, MODE_BLOCK);
+        this.render(tab, state);
+        return;
+      }
+    }
+
+    if (event.altKey && !event.ctrlKey && !event.metaKey) {
+      const alt = String(event.key || '').toLowerCase();
+      if (alt === 'f' || keyLabel(event) === 'Right') {
+        this.moveForwardWord(state);
+        this.render(tab, state);
+        return;
+      }
+      if (alt === 'b' || keyLabel(event) === 'Left') {
+        this.moveBackwardWord(state);
+        this.render(tab, state);
+        return;
+      }
+      if (alt === 'm') {
+        this.moveToFirstNonSpace(state);
+        this.render(tab, state);
+        return;
+      }
+    }
+
+    const key = keyLabel(event);
+    switch (key) {
+      case 'Escape':
+      case 'q':
+        this.exitCopyMode(tab, state, { scrollToBottom: this.getSettings(tab).scrollToBottomOnExit !== false });
+        return;
+      case 'v':
+      case ' ':
+        this.setSelectionMode(state, state.selectionMode === MODE_CELL ? MODE_NORMAL : MODE_CELL);
+        break;
+      case 'V':
+        this.setSelectionMode(state, state.selectionMode === MODE_LINE ? MODE_NORMAL : MODE_LINE);
+        break;
+      case 'Left':
+      case 'h':
+        this.moveHorizontal(state, -1);
+        break;
+      case 'Down':
+      case 'j':
+        this.moveVertical(state, 1);
+        break;
+      case 'Up':
+      case 'k':
+        this.moveVertical(state, -1);
+        break;
+      case 'Right':
+      case 'l':
+        this.moveHorizontal(state, 1);
+        break;
+      case 'Tab':
+      case 'w':
+        if (event.shiftKey) {
+          this.moveBackwardWord(state);
+        } else {
+          this.moveForwardWord(state);
+        }
+        break;
+      case 'b':
+        this.moveBackwardWord(state);
+        break;
+      case 'e':
+        this.moveForwardWordEnd(state);
+        break;
+      case '0':
+      case 'Home':
+        this.moveToColumn(state, 0);
+        break;
+      case '^':
+        this.moveToFirstNonSpace(state);
+        break;
+      case '$':
+      case 'End':
+        this.moveToEndOfLine(state);
+        break;
+      case 'Enter':
+        this.moveToStartOfNextLine(state);
+        break;
+      case 'g':
+        this.moveToScrollbackTop(state);
+        break;
+      case 'G':
+        this.moveToScrollbackBottom(state);
+        break;
+      case 'H':
+        this.moveToViewportPosition(state, 0);
+        break;
+      case 'M':
+        this.moveToViewportPosition(state, 0.5);
+        break;
+      case 'L':
+        this.moveToViewportPosition(state, 1);
+        break;
+      case 'PageUp':
+        this.moveByPage(state, -1);
+        break;
+      case 'PageDown':
+        this.moveByPage(state, 1);
+        break;
+      case 'o':
+        this.moveToSelectionOtherEnd(state, false);
+        break;
+      case 'O':
+        this.moveToSelectionOtherEnd(state, true);
+        break;
+      default:
+        return;
+    }
+
+    this.render(tab, state);
+  }
+
+  getMaxLine(xterm) {
+    return Math.max(0, xterm.buffer.active.length - 1);
+  }
+
+  clampPoint(xterm, point) {
+    return {
+      line: clamp(point.line, 0, this.getMaxLine(xterm)),
+      col: clamp(point.col, 0, Math.max(0, xterm.cols - 1)),
+    };
+  }
+
+  moveHorizontal(state, delta) {
+    const xterm = state.xterm;
+    const point = { ...state.cursor };
+    point.col += delta;
+    if (point.col < 0 && point.line > 0) {
+      point.line -= 1;
+      point.col = Math.max(0, xterm.cols - 1);
+    } else if (point.col >= xterm.cols && point.line < this.getMaxLine(xterm)) {
+      point.line += 1;
+      point.col = 0;
+    }
+    state.cursor = this.clampPoint(xterm, point);
+  }
+
+  moveVertical(state, delta) {
+    const xterm = state.xterm;
+    state.cursor = this.clampPoint(xterm, {
+      line: state.cursor.line + delta,
+      col: state.cursor.col,
+    });
+  }
+
+  moveToColumn(state, col) {
+    state.cursor = this.clampPoint(state.xterm, {
+      line: state.cursor.line,
+      col,
+    });
+  }
+
+  moveToFirstNonSpace(state) {
+    this.moveToColumn(state, firstNonSpaceColumn(state.xterm, state.cursor.line));
+  }
+
+  moveToEndOfLine(state) {
+    this.moveToColumn(state, lineContentEnd(state.xterm, state.cursor.line));
+  }
+
+  moveToStartOfNextLine(state) {
+    state.cursor = this.clampPoint(state.xterm, {
+      line: state.cursor.line + 1,
+      col: 0,
+    });
+  }
+
+  moveToScrollbackTop(state) {
+    state.cursor = this.clampPoint(state.xterm, {
+      line: 0,
+      col: state.cursor.col,
+    });
+  }
+
+  moveToScrollbackBottom(state) {
+    state.cursor = this.clampPoint(state.xterm, {
+      line: this.getMaxLine(state.xterm),
+      col: state.cursor.col,
+    });
+  }
+
+  moveToViewportPosition(state, ratio) {
+    const buffer = state.xterm.buffer.active;
+    const rows = Math.max(1, state.xterm.rows || 1);
+    const offset = ratio === 1 ? rows - 1 : Math.floor((rows - 1) * ratio);
+    state.cursor = this.clampPoint(state.xterm, {
+      line: buffer.viewportY + offset,
+      col: state.cursor.col,
+    });
+  }
+
+  moveByPage(state, pages) {
+    const rows = Math.max(1, state.xterm.rows || 1);
+    const delta = Math.round(rows * pages);
+    state.cursor = this.clampPoint(state.xterm, {
+      line: state.cursor.line + delta,
+      col: state.cursor.col,
+    });
+  }
+
+  moveForwardWord(state) {
+    const xterm = state.xterm;
+    let line = state.cursor.line;
+    let col = state.cursor.col + 1;
+    const max = this.getMaxLine(xterm);
+
+    while (line <= max) {
+      const text = lineText(xterm, line);
+      while (col < text.length && isWordChar(cellAt(text, col))) {
+        col++;
+      }
+      while (col < text.length && !isWordChar(cellAt(text, col))) {
+        col++;
+      }
+      if (col < text.length) {
+        state.cursor = this.clampPoint(xterm, { line, col });
+        return;
+      }
+      line++;
+      col = 0;
+    }
+
+    state.cursor = this.clampPoint(xterm, { line: max, col: lineContentEnd(xterm, max) });
+  }
+
+  moveBackwardWord(state) {
+    const xterm = state.xterm;
+    let line = state.cursor.line;
+    let col = state.cursor.col - 1;
+
+    while (line >= 0) {
+      const text = lineText(xterm, line);
+      if (col >= text.length) {
+        col = text.length - 1;
+      }
+      while (col >= 0 && !isWordChar(cellAt(text, col))) {
+        col--;
+      }
+      while (col > 0 && isWordChar(cellAt(text, col - 1))) {
+        col--;
+      }
+      if (col >= 0) {
+        state.cursor = this.clampPoint(xterm, { line, col });
+        return;
+      }
+      line--;
+      col = lineText(xterm, line).length - 1;
+    }
+
+    state.cursor = this.clampPoint(xterm, { line: 0, col: 0 });
+  }
+
+  moveForwardWordEnd(state) {
+    const xterm = state.xterm;
+    let line = state.cursor.line;
+    let col = state.cursor.col + 1;
+    const max = this.getMaxLine(xterm);
+
+    while (line <= max) {
+      const text = lineText(xterm, line);
+      while (col < text.length && !isWordChar(cellAt(text, col))) {
+        col++;
+      }
+      while (col + 1 < text.length && isWordChar(cellAt(text, col + 1))) {
+        col++;
+      }
+      if (col < text.length) {
+        state.cursor = this.clampPoint(xterm, { line, col });
+        return;
+      }
+      line++;
+      col = 0;
+    }
+
+    state.cursor = this.clampPoint(xterm, { line: max, col: lineContentEnd(xterm, max) });
+  }
+
+  setSelectionMode(state, mode) {
+    if (mode === MODE_NORMAL) {
+      state.selectionMode = MODE_NORMAL;
+      state.anchor = null;
+      return;
+    }
+    state.selectionMode = mode;
+    state.anchor = { ...state.cursor };
+  }
+
+  moveToSelectionOtherEnd(state, horizontalOnly) {
+    if (!state.anchor) {
+      return;
+    }
+    if (horizontalOnly) {
+      const col = state.cursor.col;
+      state.cursor.col = state.anchor.col;
+      state.anchor.col = col;
+      return;
+    }
+    const cursor = state.cursor;
+    state.cursor = state.anchor;
+    state.anchor = cursor;
+  }
+
+  scrollCursorIntoView(state) {
+    const xterm = state.xterm;
+    if (!xterm?.scrollToLine) {
+      return;
+    }
+    const buffer = xterm.buffer.active;
+    const rows = Math.max(1, xterm.rows || 1);
+    if (state.cursor.line < buffer.viewportY) {
+      xterm.scrollToLine(state.cursor.line);
+    } else if (state.cursor.line >= buffer.viewportY + rows) {
+      xterm.scrollToLine(state.cursor.line - rows + 1);
+    }
+  }
+
+  clearSelection(state) {
+    const xterm = state.xterm;
+    if (xterm?.clearSelection) {
+      xterm.clearSelection();
+    }
+    if (state.blockLayer) {
+      state.blockLayer.textContent = '';
+    }
+  }
+
+  render(tab, state) {
+    if (!state.mode || !state.xterm) {
+      return;
+    }
+    this.scrollCursorIntoView(state);
+    this.renderSelection(state);
+    this.renderOverlay(tab, state);
+  }
+
+  renderSelection(state) {
+    const xterm = state.xterm;
+    if (!state.selectionMode || !state.anchor) {
+      this.clearSelection(state);
+      return;
+    }
+
+    if (state.selectionMode === MODE_BLOCK) {
+      if (xterm.clearSelection) {
+        xterm.clearSelection();
+      }
+      this.renderBlockSelection(state);
+      return;
+    }
+
+    if (state.blockLayer) {
+      state.blockLayer.textContent = '';
+    }
+
+    const { start, end } = normalizeRange(state.anchor, state.cursor);
+    if (state.selectionMode === MODE_LINE) {
+      if (typeof xterm.selectLines === 'function') {
+        xterm.selectLines(start.line, end.line);
+      } else {
+        xterm.select(0, start.line, Math.max(1, (end.line - start.line + 1) * xterm.cols));
+      }
+      return;
+    }
+
+    const length = Math.max(1, (end.line - start.line) * xterm.cols + (end.col - start.col) + 1);
+    xterm.select(start.col, start.line, length);
+  }
+
+  ensureOverlay(tab, state) {
+    if (state.overlay || typeof document === 'undefined') {
+      return;
+    }
+    const host = tab.element?.nativeElement;
+    if (!host) {
+      return;
+    }
+    if (typeof getComputedStyle !== 'undefined' && getComputedStyle(host).position === 'static') {
+      host.style.position = 'relative';
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tabby-wezterm-copymode-overlay';
+    overlay.style.position = 'absolute';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '9';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.overflow = 'hidden';
+
+    const blockLayer = document.createElement('div');
+    blockLayer.className = 'tabby-wezterm-copymode-blocks';
+
+    const cursor = document.createElement('div');
+    cursor.className = 'tabby-wezterm-copymode-cursor';
+    cursor.style.position = 'absolute';
+    cursor.style.boxSizing = 'border-box';
+    cursor.style.border = '1px solid rgba(192, 202, 245, 0.95)';
+    cursor.style.background = 'rgba(192, 202, 245, 0.18)';
+
+    const status = document.createElement('div');
+    status.className = 'tabby-wezterm-copymode-status';
+    status.style.position = 'absolute';
+    status.style.right = '14px';
+    status.style.bottom = '8px';
+    status.style.padding = '2px 8px';
+    status.style.borderRadius = '3px';
+    status.style.background = 'rgba(26, 27, 38, 0.9)';
+    status.style.color = '#c0caf5';
+    status.style.fontFamily = '"Firple Slim", "Firple", monospace';
+    status.style.fontSize = '11px';
+    status.style.lineHeight = '16px';
+    status.style.userSelect = 'none';
+
+    overlay.appendChild(blockLayer);
+    overlay.appendChild(cursor);
+    if (this.getSettings(tab).statusOverlay !== false) {
+      overlay.appendChild(status);
+    }
+    host.appendChild(overlay);
+
+    state.overlay = overlay;
+    state.blockLayer = blockLayer;
+    state.cursorElement = cursor;
+    state.statusElement = status;
+  }
+
+  removeOverlay(state) {
+    if (state.overlay?.parentElement) {
+      state.overlay.parentElement.removeChild(state.overlay);
+    }
+    state.overlay = null;
+    state.blockLayer = null;
+    state.cursorElement = null;
+    state.statusElement = null;
+  }
+
+  getScreenMetrics(state) {
+    const xterm = state.xterm;
+    const host = state.overlay?.parentElement;
+    const screen = xterm?.element?.querySelector?.('.xterm-screen') || xterm?.element;
+    if (!host || !screen) {
+      return null;
+    }
+    const hostRect = host.getBoundingClientRect();
+    const screenRect = screen.getBoundingClientRect();
+    const cols = Math.max(1, xterm.cols || 1);
+    const rows = Math.max(1, xterm.rows || 1);
+    return {
+      left: screenRect.left - hostRect.left,
+      top: screenRect.top - hostRect.top,
+      width: screenRect.width / cols,
+      height: screenRect.height / rows,
+      viewportY: xterm.buffer.active.viewportY,
+      rows,
+      cols,
+    };
+  }
+
+  renderOverlay(tab, state) {
+    if (!state.overlay || !state.cursorElement) {
+      return;
+    }
+    const metrics = this.getScreenMetrics(state);
+    if (!metrics) {
+      return;
+    }
+    const row = state.cursor.line - metrics.viewportY;
+    state.cursorElement.style.display = row >= 0 && row < metrics.rows ? 'block' : 'none';
+    state.cursorElement.style.left = `${metrics.left + state.cursor.col * metrics.width}px`;
+    state.cursorElement.style.top = `${metrics.top + row * metrics.height}px`;
+    state.cursorElement.style.width = `${metrics.width}px`;
+    state.cursorElement.style.height = `${metrics.height}px`;
+
+    if (state.statusElement) {
+      const mode = state.selectionMode === MODE_CELL ? 'VISUAL'
+        : state.selectionMode === MODE_LINE ? 'LINE'
+          : state.selectionMode === MODE_BLOCK ? 'BLOCK'
+            : 'COPY';
+      state.statusElement.textContent = `${mode} ${state.cursor.line + 1}:${state.cursor.col + 1}`;
+    }
+  }
+
+  renderBlockSelection(state) {
+    if (!state.blockLayer || !state.anchor) {
+      return;
+    }
+    const metrics = this.getScreenMetrics(state);
+    state.blockLayer.textContent = '';
+    if (!metrics) {
+      return;
+    }
+
+    const startLine = Math.min(state.anchor.line, state.cursor.line);
+    const endLine = Math.max(state.anchor.line, state.cursor.line);
+    const startCol = Math.min(state.anchor.col, state.cursor.col);
+    const endCol = Math.max(state.anchor.col, state.cursor.col);
+    const visibleStart = Math.max(startLine, metrics.viewportY);
+    const visibleEnd = Math.min(endLine, metrics.viewportY + metrics.rows - 1);
+
+    for (let line = visibleStart; line <= visibleEnd; line++) {
+      const rect = document.createElement('div');
+      rect.style.position = 'absolute';
+      rect.style.left = `${metrics.left + startCol * metrics.width}px`;
+      rect.style.top = `${metrics.top + (line - metrics.viewportY) * metrics.height}px`;
+      rect.style.width = `${Math.max(1, endCol - startCol + 1) * metrics.width}px`;
+      rect.style.height = `${metrics.height}px`;
+      rect.style.background = 'rgba(51, 70, 124, 0.76)';
+      state.blockLayer.appendChild(rect);
+    }
+  }
+
+  selectedText(state) {
+    if (!state.selectionMode || !state.anchor) {
+      return '';
+    }
+
+    const xterm = state.xterm;
+    if (state.selectionMode === MODE_LINE) {
+      const { start, end } = normalizeRange(state.anchor, state.cursor);
+      const lines = [];
+      for (let line = start.line; line <= end.line; line++) {
+        lines.push(lineText(xterm, line));
+      }
+      return lines.join('\n');
+    }
+
+    if (state.selectionMode === MODE_BLOCK) {
+      const startLine = Math.min(state.anchor.line, state.cursor.line);
+      const endLine = Math.max(state.anchor.line, state.cursor.line);
+      const startCol = Math.min(state.anchor.col, state.cursor.col);
+      const endCol = Math.max(state.anchor.col, state.cursor.col);
+      const lines = [];
+      for (let line = startLine; line <= endLine; line++) {
+        lines.push(sliceLineCells(xterm, line, startCol, endCol, true));
+      }
+      return lines.join('\n');
+    }
+
+    const { start, end } = normalizeRange(state.anchor, state.cursor);
+    if (start.line === end.line) {
+      return sliceLineCells(xterm, start.line, start.col, end.col, false);
+    }
+
+    const lines = [sliceLineCells(xterm, start.line, start.col, xterm.cols - 1, false)];
+    for (let line = start.line + 1; line < end.line; line++) {
+      lines.push(lineText(xterm, line));
+    }
+    lines.push(sliceLineCells(xterm, end.line, 0, end.col, false));
+    return lines.join('\n');
+  }
+
+  async copyAndExit(tab, state) {
+    const text = this.selectedText(state);
+    try {
+      await writeClipboard(text);
+    } finally {
+      this.exitCopyMode(tab, state, { scrollToBottom: false });
+    }
+  }
+}
+
+let InjectableWezTermCopyModeDecorator = WezTermCopyModeDecorator;
+InjectableWezTermCopyModeDecorator = __decorate([
+  Injectable(),
+], InjectableWezTermCopyModeDecorator);
+
+let WezTermCopyModeModule = class WezTermCopyModeModule {};
+WezTermCopyModeModule = __decorate([
+  NgModule({
+    imports: [
+      TabbyCoreModule,
+    ],
+    providers: [
+      { provide: ConfigProvider, useClass: WezTermCopyModeConfigProvider, multi: true },
+      { provide: HotkeyProvider, useClass: WezTermCopyModeHotkeyProvider, multi: true },
+      { provide: TerminalDecorator, useClass: InjectableWezTermCopyModeDecorator, multi: true },
+    ],
+  }),
+], WezTermCopyModeModule);
+
+module.exports = {
+  default: WezTermCopyModeModule,
+};

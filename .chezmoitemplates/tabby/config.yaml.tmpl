@@ -278,6 +278,8 @@ hotkeys:
   tabby-wezterm-compat:
     send-ctrl-t: []
     yazi-split: []
+  tabby-wezterm-copymode:
+    activate: []
 
 {{- if eq .chezmoi.os "windows" }}
 profiles:
@@ -333,6 +335,12 @@ weztermCompat:
   leaderTimeout: 1000
   statusOverlay: true
   yaziCommand: yazi
+
+weztermCopyMode:
+  leaderTimeout: 1000
+  activateWithLeader: true
+  statusOverlay: true
+  scrollToBottomOnExit: true
 
 recoverTabs: true
 enableAnalytics: false
