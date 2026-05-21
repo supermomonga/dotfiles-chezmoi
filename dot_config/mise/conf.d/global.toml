@@ -56,7 +56,7 @@ aws-cli = "latest"
 #"go:github.com/syou6162/cchook" = "latest"
 "go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
 "go:github.com/x-motemen/ghq" = "latest"
-"npm:@openai/codex" = "latest"
+#"npm:@openai/codex" = "latest"
 #"npm:@cloudcli-ai/cloudcli" = "latest"
 "npm:agent-browser" = "latest"
 "npm:kanban" = "latest"
