@@ -5,16 +5,22 @@ lua-bin = "https://github.com/supermomonga/mise-plugin-lua-bin"
 
 [tools]
 # Runtime
-bun = "latest"
+bun = "1.3.13" # 1.3.14 causes error
 deno = "latest"
 go = "latest"
 node = "latest"
 python = "latest"
 rust = "latest"
 zig = "latest"
+
 # for Neovim compatibility, use v5.1
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
 lua = { version = "5.1", os = ["linux", "macos"] }
+{{- end }}
+
+{{- if eq .chezmoi.os "windows" }}
 #lua-bin = { version = "5.1", os = ["windows"] }
+{{- end }}
 
 # Tools
 fzf = "latest"
@@ -30,12 +36,13 @@ aws-cli = "latest"
 
 # Packages
 "cargo:pik" = "latest"
+
+{{ if ne .chezmoi.os "windows" }}
 "cargo:ultraman" = { version = "latest", os = ["linux", "macos"] }
-#"cargo:https://github.com/JakkuSakura/codex-proxy" = { version = "branch:main", os = ["linux"] }
+{{ end }}
+
 "github:k1LoW/mo" = { version = "latest", os = ["windows", "linux", "macos"] }
 "github:stripe/stripe-cli" = { version = "latest", os = ["windows", "linux", "macos"] }
-#"github:sijiaoh/pockode" = { version = "latest", os = ["linux", "macos"] }
-#"github:lightpanda-io/browser" = { version = "latest", os = ["linux", "macos"] }
 "github:router-for-me/CLIProxyAPI" = { version = "latest", os = ["linux", "macos", "windows"] }
 "github:prskr/git-age" = "latest"
 "github:wezterm/wezterm" = {
@@ -54,10 +61,10 @@ aws-cli = "latest"
 # use `go install github.com/syou6162/cchook@latest` instead.
 # ref: https://github.com/jdx/mise/discussions/6737
 #"go:github.com/syou6162/cchook" = "latest"
+{{ if ne .chezmoi.os "windows" }}
 "go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
+{{ end }}
 "go:github.com/x-motemen/ghq" = "latest"
-#"npm:@openai/codex" = "latest"
-#"npm:@cloudcli-ai/cloudcli" = "latest"
 "npm:agent-browser" = "latest"
 "npm:kanban" = "latest"
 "npm:opencode-ai" = "latest"
@@ -68,7 +75,6 @@ aws-cli = "latest"
 "npm:vibe-kanban" = "latest"
 "npm:yepanywhere" = "latest"
 "pipx:apm-cli" = "latest"
-#"pipx:arxivterminal" = "latest"
 "pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
 
