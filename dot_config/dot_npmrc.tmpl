@@ -1,5 +1,6 @@
 {{- if lookPath "gh" -}}
-{{- $lines := output "sh" "-c" "gh auth status --show-token --json hosts 2>/dev/null | jq -r '[.hosts[\"github.com\"][] | select(.scopes | split(\", \") | any(. == \"read:packages\"))] | first | \"@\\(.login):registry=https://npm.pkg.github.com\\n//npm.pkg.github.com/:_authToken=\\(.token)\" // empty'" | trim -}}
+{{- $npmrcJq := `.hosts["github.com"][]? | select((.scopes // "") | split(", ") | any(. == "read:packages")) | "@\(.login):registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=\(.token)"` -}}
+{{- $lines := output "gh" "auth" "status" "--show-token" "--json" "hosts" "--jq" $npmrcJq | trim -}}
 {{- if ne $lines "" -}}
 {{ $lines }}
 {{ end -}}
