@@ -5,9 +5,10 @@ process.env.ANTHROPIC_AUTH_TOKEN = process.env.GLM_API_KEY;
 process.env.API_TIMEOUT_MS = "3000000";
 
 // Model mappings (GLM models)
-process.env.ANTHROPIC_DEFAULT_OPUS_MODEL = "GLM-5";
-process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = "GLM-5";
-process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = "GLM-4.7";
+process.env.ANTHROPIC_DEFAULT_OPUS_MODEL = "GLM-5.1";
+process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = "GLM-5.1";
+process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = "GLM-5-TURBO";
+process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE = "75";
 
 // Handled by Stop hook
 if (Bun.argv.includes("--team-name")) {
