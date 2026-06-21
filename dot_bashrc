@@ -1,3 +1,20 @@
+
+if [ -x "$HOME/.local/bin/mise" ]; then
+  eval "$("$HOME/.local/bin/mise" activate --shims)"
+elif [ -x "/opt/homebrew/bin/mise" ]; then
+  eval "$(/opt/homebrew/bin/mise activate --shims)"
+fi
+
+case "$(uname -s)" in
+  Darwin)
+    export PATH="/opt/homebrew/bin:$PATH"
+    ;;
+esac
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.cache/.bun/bin:$PATH"
+export PATH="$HOME/.config/.foundry/bin:$PATH"
+export PATH="$HOME/.dotnet/tools:$PATH"
+
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;
@@ -273,14 +290,6 @@ alias tl="attach_tmux_session_list"
 
 eval "$(starship init bash)"
 starship preset pure-preset -o ~/.config/starship/presets/pure.toml
-
-export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.cache/.bun/bin:$PATH"
-export PATH="$HOME/.config/.foundry/bin:$PATH"
-
-# Added by flyctl installer
-export FLYCTL_INSTALL="/home/code/.fly"
-export PATH="$FLYCTL_INSTALL/bin:$PATH"
 
 if [ -f ~/.local_bashrc ]; then
   . ~/.local_bashrc
