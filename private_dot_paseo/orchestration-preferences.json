@@ -1,0 +1,21 @@
+{
+  "providers": {
+    "impl": "codex/gpt-5.5",
+    "ui": "codex/gpt-5.5",
+    "research": "opencode/zai-coding-plan/glm-5.2",
+    "planning": "codex/gpt-5.5",
+    "planning-second-opinion": "opencode/zai-coding-plan/glm-5.2",
+    "committee-one": "codex/gpt-5.5",
+    "committee-two": "opencode/zai-coding-plan/glm-5.2",
+    "audit": "opencode/zai-coding-plan/glm-5.2"
+  },
+  "preferences": [
+    "Use Codex GPT-5.5 as the default choice for implementation, planning, UI work, hard debugging, and final technical judgment.",
+    "Use GLM 5.2 via opencode/zai-coding-plan/glm-5.2 for lightweight subagent work, quick second opinions, research, issue triage, and first-pass audits.",
+    "For committees, prefer contrast by pairing Codex GPT-5.5 with GLM 5.2 when possible.",
+    "Escalate from GLM 5.2 to Codex GPT-5.5 when the task needs code changes, high-risk architectural judgment, or final verification.",
+    "During planning, when a task is difficult, would benefit from multiple perspectives, or the user explicitly asks for deep planning with terms such as \"deep-planning\", \"deep planning\", or \"Deep Planning\", ask planning-second-opinion for independent critiques, compare their arguments, and refine the plan before presenting it to the user.",
+    "The planning provider remains the decision-making leader during planning; second and third opinions are advisory inputs, and final plan ownership stays with the model selected by planning.",
+    "Use the `research` provider when performing paper research with papers-cli."
+  ]
+}
