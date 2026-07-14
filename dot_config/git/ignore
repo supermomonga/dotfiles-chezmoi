@@ -1,19 +1,20 @@
-**/.claude/settings.local.json
 **/mise.local.toml
 
 **/*.local.json
 **/*.local.toml
 **/*.local.yaml
+**/*.local.yml
 **/*.local.md
 
+**/.claude/settings.local.json
+AGENTS.override.md
+
+docs.local/**/*
+
 .rulesync
-.pockode
 
 .playwright-cli
 
 .DS_Store
-
-tmuxist.*
-.tmuxist.*
 
 .cline
