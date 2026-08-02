@@ -80,6 +80,18 @@ function repo_list {
 }
 Set-Alias -Name g -Value repo_list
 
+# mise task + fzf selector
+function mise_task_list {
+  $selected = mise task ls --all --json |
+    ConvertFrom-Json |
+    ForEach-Object { "{0}`t{1}" -f $_.name, $_.description } |
+    fzf --delimiter "`t" --with-nth=1,2
+  if (-not $selected) { return }
+  $task = ($selected -split "`t", 2)[0]
+  mise run $task
+}
+Set-Alias -Name mt -Value mise_task_list
+
 # git worktree + fzf selector
 function git_worktree_list {
   $select = git-wt | Select-Object -Skip 1 | fzf
