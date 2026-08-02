@@ -270,6 +270,17 @@ function repo_list() {
 }
 alias g="repo_list"
 
+function mise_task_list() {
+  local selected
+  local task
+  selected=$(mise task ls --all --json \
+    | jq -r '.[] | [.name, (.description // "")] | @tsv' \
+    | fzf --delimiter=$'\t' --with-nth=1,2) || return
+  task=${selected%%$'\t'*}
+  mise run "$task"
+}
+alias mt="mise_task_list"
+
 function git_worktree_list() {
   local select
   local repo
