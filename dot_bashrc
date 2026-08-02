@@ -317,5 +317,5 @@ if is_wsl; then
 fi
 
 # Turso
-export PATH="$PATH:/home/code/.turso"
+export PATH="$PATH:$HOME/.turso"
 
