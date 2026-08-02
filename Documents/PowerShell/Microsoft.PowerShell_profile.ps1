@@ -15,6 +15,14 @@ if (-not (Test-Path $_miseCache) -or
 }
 . $_miseCache
 
+# mise shims
+#$resolved = Resolve-Path (Join-Path $env:LOCALAPPDATA "mise\shims")
+#if ($resolved) {
+#    $Env:Path = "$($resolved.Path);$Env:Path"
+#}
+(&mise activate pwsh --shims) | Out-String | Invoke-Expression
+$Env:MISE_LOG_FILE = Resolve-Path (Join-Path $Env:XDG_STATE_HOME "mise\logs\mise.log")
+
 # Claude Code
 $resolved = Resolve-Path "~/.local/bin" -ErrorAction SilentlyContinue
 if ($resolved) {
