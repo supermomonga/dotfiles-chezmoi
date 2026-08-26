@@ -36,6 +36,7 @@ aws-cli = "latest"
 
 # Packages
 "cargo:pik" = "latest"
+"cargo:lific" = "latest"
 
 {{ if ne .chezmoi.os "windows" }}
 "cargo:ultraman" = { version = "latest", os = ["linux", "macos"] }
@@ -58,7 +59,7 @@ aws-cli = "latest"
   },
 }
 "go:github.com/babarot/gomi" = "latest"
-"go:github.com/k1LoW/git-wt" = "latest"
+#"go:github.com/k1LoW/git-wt" = "latest"
 # temporary disabled.
 # use `go install github.com/syou6162/cchook@latest` instead.
 # ref: https://github.com/jdx/mise/discussions/6737
@@ -67,13 +68,13 @@ aws-cli = "latest"
 "go:github.com/Warashi/cage" = { version = "latest", os = ["linux", "macos"] }
 {{ end }}
 "go:github.com/x-motemen/ghq" = "latest"
-"npm:agent-browser" = "latest"
+#"npm:agent-browser" = "latest"
 "npm:opencode-ai" = "latest"
-"npm:rulesync" = "latest"
+#"npm:rulesync" = "latest"
 "npm:sentry" = "latest"
 "npm:@getpaseo/cli" = "latest"
-"pipx:apm-cli" = "latest"
-"pipx:llmstxt2skill" = "latest"
+#"pipx:apm-cli" = "latest"
+#"pipx:llmstxt2skill" = "latest"
 "pipx:edge-tts" = "latest"
 
 
@@ -91,10 +92,10 @@ package_manager = "bun"
 # v3.13.0 broken now https://github.com/luarocks/luarocks/issues/1851
 LUAROCKS_VERSION = "3.12.2"
 
-[tasks.sync-rule]
-description = "Sync agents' rules from claude code to others"
-run = 'rulesync import -t claudecode -f "*" -V; rulesync generate -t "codexcli,opencode" -f "*" -V'
-
-[tasks.sync-rule-global]
-description = "Sync agents' rules from claude code to others"
-run = 'rulesync import -g -t claudecode -f "*" -V; rulesync generate -g -t "codexcli,opencode" -f "*" -V'
+#[tasks.sync-rule]
+#description = "Sync agents' rules from claude code to others"
+#run = 'rulesync import -t claudecode -f "*" -V; rulesync generate -t "codexcli,opencode" -f "*" -V'
+#
+#[tasks.sync-rule-global]
+#description = "Sync agents' rules from claude code to others"
+#run = 'rulesync import -g -t claudecode -f "*" -V; rulesync generate -g -t "codexcli,opencode" -f "*" -V'
