@@ -5,6 +5,8 @@
 **/*.local.yaml
 **/*.local.yml
 **/*.local.md
+**/*.local.ps1
+**/*.local
 
 **/.claude/settings.local.json
 AGENTS.override.md
@@ -18,3 +20,5 @@ docs.local/**/*
 .DS_Store
 
 .cline
+
+.zcode/plans/
