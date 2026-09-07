@@ -230,6 +230,15 @@ alias glmd="cage glmcode --allow-dangerously-skip-permissions"
 alias co="cage codex"
 alias cod="cage codex --yolo"
 
+case "$(uname -s)" in
+  Darwin)
+    alias railgun-wallet="terminal-wallet-macos"
+    ;;
+  Linux)
+    alias railgun-wallet="terminal-wallet-linux"
+    ;;
+esac
+
 wezterm_appimages=("$HOME"/.local/share/mise/installs/github-wezterm-wezterm/latest/WezTerm-nightly-*.AppImage)
 if [ -e "${wezterm_appimages[0]}" ]; then
   alias wezterm="\"${wezterm_appimages[0]}\""
@@ -298,7 +307,6 @@ function attach_tmux_session_list() {
 alias tl="attach_tmux_session_list"
 
 eval "$(starship init bash)"
-starship preset pure-preset -o ~/.config/starship/presets/pure.toml
 
 if [ -f ~/.local_bashrc ]; then
   . ~/.local_bashrc
@@ -319,3 +327,10 @@ fi
 # Turso
 export PATH="$PATH:$HOME/.turso"
 
+# Clipr
+alias clipr='~/ghq/github.com/supermomonga/clipr/dist/clipr'
+
+# >>> grok installer >>>
+export PATH="$HOME/.grok/bin:$PATH"
+[[ -r "$HOME/.grok/completions/bash/grok.bash" ]] && source "$HOME/.grok/completions/bash/grok.bash"
+# <<< grok installer <<<
