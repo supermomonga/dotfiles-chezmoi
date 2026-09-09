@@ -27,6 +27,9 @@ export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state"
 export XDG_CACHE_HOME="$HOME/.cache"
 
+# functions
+source ~/.config/bash/aiask.bash
+
 shopt -s autocd
 shopt -s dotglob
 
@@ -334,3 +337,4 @@ alias clipr='~/ghq/github.com/supermomonga/clipr/dist/clipr'
 export PATH="$HOME/.grok/bin:$PATH"
 [[ -r "$HOME/.grok/completions/bash/grok.bash" ]] && source "$HOME/.grok/completions/bash/grok.bash"
 # <<< grok installer <<<
+
