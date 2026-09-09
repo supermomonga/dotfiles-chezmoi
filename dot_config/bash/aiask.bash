@@ -76,7 +76,10 @@ aiask() (
     fi
     BASH_ENV=/dev/null "$BASH" --noprofile --norc -n -c "$aiask_command" || return 1
 
-    printf '\n%s\n\n以下のコマンドを実行しますか？ (Y/n) ' "$aiask_command" >&3
+    printf '\n' >&3
+    command bat --language=bash --color=always --style=plain \
+        --paging=never --wrap=character <<< "$aiask_command" >&3 || return 1
+    printf '\n以下のコマンドを実行しますか？ (Y/n) ' >&3
     IFS= read -r aiask_answer <&3 || return 1
     case "$aiask_answer" in
         ''|[yY]|[yY][eE][sS])
