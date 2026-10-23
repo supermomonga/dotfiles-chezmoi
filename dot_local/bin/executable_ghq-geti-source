@@ -8,6 +8,9 @@ set -uo pipefail
 
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/ghq-geti"
 mkdir -p "$cache_dir"
+# reload で中断されたときに書きかけのキャッシュを残さない
+trap 'rm -f "$cache_dir"/*."$$"' EXIT
+trap 'exit 1' TERM INT HUP
 
 # コマンドの出力を 10 分間キャッシュする
 cached() {
@@ -29,6 +32,27 @@ search_users() {
   gh api -X GET search/users -f q="$1 in:login" -f per_page=50 \
     | jq -r --arg q "$1" '.items[].login | select(ascii_downcase | startswith($q | ascii_downcase)) | "@" + .'
 }
+
+# クエリに対応する候補の種類
+mode_key() {
+  case "$1" in
+    @*/*) local owner="${1#@}"; echo "repos-@${owner%%/*}" ;;
+    @?*) echo "users-${1#@}" ;;
+    @) echo "none" ;;
+    *) echo "repos-self" ;;
+  esac
+}
+
+# usage: ghq-geti-source --on-change <state file> <query>
+# 候補の種類が変わったときだけ reload を指示する (fzf の transform 用)
+if [[ "${1:-}" == "--on-change" ]]; then
+  key="$(mode_key "${3:-}")"
+  if [[ "$key" != "$(cat "$2" 2>/dev/null)" ]]; then
+    printf '%s' "$key" > "$2"
+    echo "reload:ghq-geti-source {q}"
+  fi
+  exit
+fi
 
 query="${1:-}"
 case "$query" in

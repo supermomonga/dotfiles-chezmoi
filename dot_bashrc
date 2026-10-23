@@ -316,12 +316,18 @@ function ghq_get_my_repo() {
   local repo
   # 候補は ghq-geti-source がクエリに応じて出し分ける
   # ユーザー (@hoge) を選ぶとクエリを @hoge/ にしてそのユーザーのリポジトリ一覧へ
+  local me
+  local state
+  me=$(gh config get user -h github.com)
+  state=$(mktemp)
   selected=$(fzf --delimiter=$'\t' --with-nth=1,2 --with-shell='bash -c' \
+    --query="${me:+@$me/}" \
     --header='@user: ユーザー検索 / @user/: そのユーザーのリポジトリ' \
-    --bind='start:reload:ghq-geti-source {q}' \
-    --bind='change:reload:ghq-geti-source {q}' \
+    --bind="start,change:transform:ghq-geti-source --on-change $(printf %q "$state") {q}" \
     --bind='enter:transform:[[ {1} == */* ]] && echo accept || { [[ -n {1} ]] && echo "change-query("{1}"/)"; }' \
-    < /dev/null) || return
+    < /dev/null)
+  rm -f "$state"
+  [[ -n "$selected" ]] || return
   repo=${selected%%$'\t'*}
   repo=${repo#@}
   command ghq get "$repo" && cd "$(command ghq root)/github.com/$repo"
