@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# `ghq geti` の fzf 候補を検索クエリに応じて出力する
+#
+#   (通常)        自分のリポジトリ一覧
+#   @hoge         hoge から始まるユーザー一覧
+#   @hoge/...     hoge のリポジトリ一覧
+set -uo pipefail
+
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/ghq-geti"
+mkdir -p "$cache_dir"
+
+# コマンドの出力を 10 分間キャッシュする
+cached() {
+  local file="$cache_dir/$1"
+  shift
+  if [[ -z "$(find "$file" -mmin -10 2>/dev/null)" ]]; then
+    "$@" > "$file.$$" && mv "$file.$$" "$file" || rm -f "$file.$$"
+  fi
+  [[ -f "$file" ]] && cat "$file"
+}
+
+# usage: list_repos <owner (空なら自分)> <行頭に付ける prefix>
+list_repos() {
+  gh repo list ${1:+"$1"} --limit 1000 --json nameWithOwner,description \
+    | jq -r --arg p "$2" '.[] | [$p + .nameWithOwner, (.description // "")] | @tsv'
+}
+
+search_users() {
+  gh api -X GET search/users -f q="$1 in:login" -f per_page=50 \
+    | jq -r --arg q "$1" '.items[].login | select(ascii_downcase | startswith($q | ascii_downcase)) | "@" + .'
+}
+
+query="${1:-}"
+case "$query" in
+  @*/*)
+    owner="${query#@}"
+    owner="${owner%%/*}"
+    cached "repos-@$owner" list_repos "$owner" "@"
+    ;;
+  @?*)
+    prefix="${query#@}"
+    # 入力途中のリクエストを減らすための debounce (fzf は reload 時に前のプロセスを止める)
+    sleep 0.3
+    cached "users-$prefix" search_users "$prefix"
+    ;;
+  @)
+    ;;
+  *)
+    cached "repos-self" list_repos "" ""
+    ;;
+esac

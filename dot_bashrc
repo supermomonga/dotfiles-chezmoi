@@ -311,6 +311,33 @@ function attach_tmux_session_list() {
 }
 alias tl="attach_tmux_session_list"
 
+function ghq_get_my_repo() {
+  local selected
+  local repo
+  # 候補は ghq-geti-source がクエリに応じて出し分ける
+  # ユーザー (@hoge) を選ぶとクエリを @hoge/ にしてそのユーザーのリポジトリ一覧へ
+  selected=$(fzf --delimiter=$'\t' --with-nth=1,2 --with-shell='bash -c' \
+    --header='@user: ユーザー検索 / @user/: そのユーザーのリポジトリ' \
+    --bind='start:reload:ghq-geti-source {q}' \
+    --bind='change:reload:ghq-geti-source {q}' \
+    --bind='enter:transform:[[ {1} == */* ]] && echo accept || { [[ -n {1} ]] && echo "change-query("{1}"/)"; }' \
+    < /dev/null) || return
+  repo=${selected%%$'\t'*}
+  repo=${repo#@}
+  command ghq get "$repo" && cd "$(command ghq root)/github.com/$repo"
+}
+alias gg="ghq_get_my_repo"
+
+# `ghq geti` で ghq_get_my_repo を呼び出す
+function ghq() {
+  if [[ "$1" == "geti" ]]; then
+    shift
+    ghq_get_my_repo "$@"
+  else
+    command ghq "$@"
+  fi
+}
+
 eval "$(starship init bash)"
 
 if [ -f ~/.local_bashrc ]; then
