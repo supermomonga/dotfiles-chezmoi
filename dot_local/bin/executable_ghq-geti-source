@@ -28,7 +28,33 @@ list_repos() {
     | jq -r --arg p "$2" '.[] | [$p + .nameWithOwner, (.description // "")] | @tsv'
 }
 
+debounce_sec=0.4
+throttle_us=2000000 # Search API の上限 (30 回/分) に収まる間隔
+
+now_us() {
+  if [[ -n "${EPOCHREALTIME:-}" ]]; then
+    echo "${EPOCHREALTIME/[.,]/}"
+  else
+    echo "$(date +%s)000000"
+  fi
+}
+
+# リクエスト前に debounce と throttle の待ちを入れる
+# 待っている間に次の入力があれば fzf がこのプロセスを止めるので、最後の入力だけがリクエストされる
+wait_for_request() {
+  local last_file="$cache_dir/.last-request"
+  local last wait_us
+  sleep "$debounce_sec"
+  last="$(cat "$last_file" 2>/dev/null || echo 0)"
+  wait_us=$(( last + throttle_us - $(now_us) ))
+  if (( wait_us > 0 )); then
+    sleep "$(printf '%d.%06d' $(( wait_us / 1000000 )) $(( wait_us % 1000000 )))"
+  fi
+  now_us > "$last_file"
+}
+
 search_users() {
+  wait_for_request
   gh api -X GET search/users -f q="$1 in:login" -f per_page=50 \
     | jq -r --arg q "$1" '.items[].login | select(ascii_downcase | startswith($q | ascii_downcase)) | "@" + .'
 }
@@ -63,8 +89,6 @@ case "$query" in
     ;;
   @?*)
     prefix="${query#@}"
-    # 入力途中のリクエストを減らすための debounce (fzf は reload 時に前のプロセスを止める)
-    sleep 0.3
     cached "users-$prefix" search_users "$prefix"
     ;;
   @)
