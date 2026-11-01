@@ -20,7 +20,6 @@ if (-not (Test-Path $_miseCache) -or
 #if ($resolved) {
 #    $Env:Path = "$($resolved.Path);$Env:Path"
 #}
-(&mise activate pwsh --shims) | Out-String | Invoke-Expression
 $Env:MISE_LOG_FILE = Resolve-Path (Join-Path $Env:XDG_STATE_HOME "mise\logs\mise.log")
 
 # Claude Code
